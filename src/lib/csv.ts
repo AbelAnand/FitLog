@@ -1,4 +1,5 @@
 import type { SetRow } from './prs'
+import { isNative } from './native'
 
 function esc(v: string | number): string {
   const s = String(v)
@@ -12,8 +13,18 @@ export function setsToCsv(rows: SetRow[]): string {
   return [header.join(','), ...lines].join('\n')
 }
 
-/** Share on iOS (opens the share sheet), otherwise download. */
+/** Native app: write to the cache dir and open the iOS share sheet. Web: Web Share API or download. */
 export async function exportCsv(filename: string, csv: string): Promise<'shared' | 'downloaded'> {
+  if (isNative) {
+    const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')])
+    const written = await Filesystem.writeFile({ path: filename, data: csv, directory: Directory.Cache, encoding: Encoding.UTF8 })
+    try {
+      await Share.share({ title: 'FitLog export', url: written.uri })
+    } catch (e) {
+      if (!/cancel/i.test((e as Error).message ?? '')) throw e
+    }
+    return 'shared'
+  }
   const file = new File([csv], filename, { type: 'text/csv' })
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
   if (nav.share && nav.canShare?.({ files: [file] })) {

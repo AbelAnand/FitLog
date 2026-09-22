@@ -2,13 +2,22 @@
 
 A mobile-first workout tracker. Log each session (title, exercises, per-set weight × reps, notes), keep a weekly-goal streak, and watch your top-set weight climb per exercise.
 
-**Live app:** https://abelanand.github.io/FitLog/
+Ships two ways from the same code:
 
-## Install on iPhone
+- **Native iOS app** (Capacitor shell in `ios/`), installed from Xcode or TestFlight.
+- **Web / PWA** at https://abelanand.github.io/FitLog/ (Safari → Share → Add to Home Screen).
 
-1. Open the link above in **Safari**.
-2. Tap **Share** → **Add to Home Screen**.
-3. Launch FitLog from the home screen. It runs full-screen like a native app and updates itself on every deploy.
+## Install the iOS app
+
+```bash
+npm install
+npm run build:ios      # builds the web bundle for the native shell and syncs it into ios/
+npm run ios            # opens ios/App/App.xcodeproj in Xcode
+```
+
+In Xcode: plug in your iPhone, pick it as the run destination, and press **Run**. The first time, Xcode registers the bundle id `com.abelanand.fitlog` with your developer account and the phone asks you to trust the developer (Settings → General → VPN & Device Management). With a paid developer account the install lasts a year; Product → Archive → Distribute uploads to TestFlight.
+
+After changing web code, run `npm run build:ios` again and press Run in Xcode. The Xcode project itself rarely needs to change.
 
 ## Stack
 
@@ -24,7 +33,7 @@ npm install
 npm run dev                  # http://localhost:5173/FitLog/
 ```
 
-`npm run build` type-checks and produces `dist/` (with a `404.html` copy of `index.html` so deep links work on GitHub Pages).
+`npm run build` type-checks and produces the web `dist/` (base `/FitLog/`, with a `404.html` copy so deep links work on GitHub Pages). `npm run build:ios` builds with base `/` and no service worker, then runs `cap sync ios`. Icons and splash screens are generated from `assets/` with `npx @capacitor/assets generate --ios`.
 
 ## Data model
 

@@ -3,13 +3,19 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
-// Deployed to GitHub Pages at https://abelanand.github.io/FitLog/
+// Two build targets share this config:
+//  - Web / GitHub Pages: served under https://abelanand.github.io/FitLog/ (base '/FitLog/', PWA on)
+//  - Native iOS via Capacitor: bundled at the app root (base '/', PWA off). Select with CAP_BUILD=1.
+const isNative = process.env.CAP_BUILD === '1'
+const base = isNative ? '/' : '/FitLog/'
+
 export default defineConfig({
-  base: '/FitLog/',
+  base,
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
+      disable: isNative,
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
@@ -20,8 +26,8 @@ export default defineConfig({
         background_color: '#0b0d10',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/FitLog/',
-        scope: '/FitLog/',
+        start_url: base,
+        scope: base,
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -29,10 +35,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallback: '/FitLog/index.html',
+        navigateFallback: `${base}index.html`,
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
-        // Never cache API calls; data always comes from Supabase live.
-        navigateFallbackDenylist: [/^\/FitLog\/api/],
       },
     }),
   ],
