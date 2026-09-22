@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+/* Design tokens. Swap these to restyle the whole app. */
+@theme {
+  --color-bg: #0b0d10;
+  --color-surface: #15181d;
+  --color-surface-2: #1d2128;
+  --color-surface-3: #262b33;
+  --color-border: #262b33;
+  --color-text: #f2f4f7;
+  --color-muted: #8b93a1;
+  --color-faint: #5b6270;
+  --color-accent: #c6f135;
+  --color-accent-ink: #0b0d10;
+  --color-accent-dim: rgba(198, 241, 53, 0.14);
+  --color-danger: #ff5c5c;
+  --color-pr: #ffb020;
+  --color-pr-dim: rgba(255, 176, 32, 0.16);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+  --radius-card: 18px;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html, body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  input, textarea, button {
+    font: inherit;
+    color: inherit;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+/* Safe-area helpers for the notch and home indicator. */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pb-tabbar { padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Hide scrollbars on horizontal chip rows. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
