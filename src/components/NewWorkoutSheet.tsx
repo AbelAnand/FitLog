@@ -12,7 +12,10 @@ const DEFAULT_TITLES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', '
 export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: boolean; onClose: () => void; initialMode?: 'now' | 'plan' }) {
   const [title, setTitle] = useState('')
   const [mode, setMode] = useState<'now' | 'plan'>(initialMode)
+  const today = format(new Date(), 'yyyy-MM-dd')
   const [planDate, setPlanDate] = useState(() => format(addDays(new Date(), 1), 'yyyy-MM-dd'))
+  const [logDate, setLogDate] = useState(today)
+  const backdated = mode === 'now' && logDate !== today
   const [gym, setGym] = useState(false)
   const [gymAvailable, setGymAvailable] = useState(false)
   const { data: workouts = [] } = useWorkouts()
@@ -22,6 +25,7 @@ export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: 
   useEffect(() => {
     if (!open) return
     setMode(initialMode)
+    setLogDate(today)
     loadReminderSettings().then((s) => {
       setGymAvailable(isNative && s.gymEnabled)
       setGym(isNative && s.gymEnabled)
@@ -34,18 +38,31 @@ export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: 
   const start = async (t: string) => {
     const clean = t.trim() || 'Workout'
     const plan = mode === 'plan'
-    const id = await create.mutateAsync({ title: clean, is_plan: plan, date: plan ? planDate : undefined })
-    if (!plan && gym && gymAvailable) startGymSession(id, clean)
+    const id = await create.mutateAsync({ title: clean, is_plan: plan, date: plan ? planDate : logDate })
+    if (!plan && !backdated && gym && gymAvailable) startGymSession(id, clean)
     setTitle('')
     onClose()
     nav(`/workout/${id}`)
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={mode === 'plan' ? 'Plan a workout' : 'Start a workout'}>
+    <Sheet open={open} onClose={onClose} title={mode === 'plan' ? 'Plan a workout' : backdated ? 'Log a past workout' : 'Start a workout'}>
       <div className="mb-4">
         <Segmented value={mode} options={[{ value: 'now', label: 'Start now' }, { value: 'plan', label: 'Plan for later' }]} onChange={setMode} />
       </div>
+
+      {mode === 'now' && (
+        <label className="flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3 mb-4">
+          <span className="flex items-center gap-3">
+            <span className="text-muted"><Icon.Calendar /></span>
+            <span>
+              <span className="block text-[15px] font-medium">Date</span>
+              <span className="block text-[12px] text-muted">{backdated ? 'Logging a past session — no timer' : 'Today'}</span>
+            </span>
+          </span>
+          <input type="date" value={logDate} max={today} onChange={(e) => e.target.value && setLogDate(e.target.value)} className="bg-transparent text-[15px] outline-none text-right" aria-label="Workout date" />
+        </label>
+      )}
 
       {mode === 'plan' && (
         <label className="flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3 mb-4">
@@ -65,10 +82,10 @@ export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: 
       <div className="flex gap-2">
         <TextInput placeholder="Custom title…" value={title} onChange={(e) => setTitle(e.target.value)} enterKeyHint="go" onKeyDown={(e) => e.key === 'Enter' && title.trim() && start(title)} />
         <Button onClick={() => start(title)} disabled={create.isPending} className="shrink-0">
-          {mode === 'plan' ? 'Plan' : 'Start'}
+          {mode === 'plan' ? 'Plan' : backdated ? 'Log' : 'Start'}
         </Button>
       </div>
-      {mode === 'now' && gymAvailable && (
+      {mode === 'now' && !backdated && gymAvailable && (
         <div className="mt-4 flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3">
           <div className="flex items-center gap-3">
             <span className="text-muted"><Icon.Bell /></span>
