@@ -255,7 +255,7 @@ export function WorkoutPage() {
             onDeleteSet={(setId) => deleteSet.mutate(setId)}
             onNotes={(n) => updateWorkoutExercise.mutate({ workoutExerciseId: we.id, patch: { notes: n } })}
             onComplete={(done) => updateWorkoutExercise.mutate({ workoutExerciseId: we.id, patch: { completed_at: done ? new Date().toISOString() : null } })}
-            onTrackIncline={(on) => updateExercise.mutate({ exerciseId: we.exercise_id, patch: { track_incline: on } })}
+            onMetrics={(metrics) => updateExercise.mutate({ exerciseId: we.exercise_id, patch: { metrics, track_incline: metrics.includes('incline') } })}
             onRemove={() => removeExercise.mutate(we.id)}
           />
         ))}

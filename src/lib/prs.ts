@@ -1,4 +1,5 @@
 import type { Drop, ExerciseKind, SetType } from '../api/types'
+import type { MetricKey } from '../data/cardio-metrics'
 import { toKg, toKm, type DistanceUnit, type Unit } from './units'
 
 /** A single logged set, flattened with its workout and exercise context. */
@@ -14,6 +15,7 @@ export interface SetRow {
   distance_unit: DistanceUnit | null
   drops: Drop[]
   incline: number | null
+  extra: Partial<Record<MetricKey, number>>
   created_at: string
   workout_exercise_id: string
   exercise_id: string
@@ -22,6 +24,15 @@ export interface SetRow {
   workout_id: string
   workout_title: string
   date: string // yyyy-MM-dd
+}
+
+/** Distance in km for a cardio set: logged distance, or speed × time when only those were logged. */
+export function cardioKm(r: Pick<SetRow, 'distance' | 'distance_unit' | 'duration_seconds' | 'extra'>): number {
+  const du = r.distance_unit ?? 'mi'
+  if (r.distance) return toKm(r.distance, du)
+  const speed = r.extra.speed
+  if (speed && r.duration_seconds) return toKm(speed * (r.duration_seconds / 3600), du)
+  return 0
 }
 
 /** Strength sets that count toward PRs and volume. */
@@ -55,7 +66,7 @@ export function sessionsFor(rows: SetRow[], exerciseId: string): Session[] {
     s.sets.push(r)
     if (r.exercise_kind === 'cardio') {
       s.seconds += r.duration_seconds ?? 0
-      s.km += r.distance ? toKm(r.distance, r.distance_unit ?? 'mi') : 0
+      s.km += cardioKm(r)
       continue
     }
     if (!counts(r)) continue

@@ -4,6 +4,7 @@ import type { DistanceUnit, Unit } from '../lib/units'
 import type { SetRow } from '../lib/prs'
 import { keys } from './keys'
 import type { Drop, Exercise, ExerciseKind, Profile, SetType, WorkoutDetail, WorkoutSummary } from './types'
+import { defaultMetricsFor, isMetricKey, type MetricKey } from '../data/cardio-metrics'
 
 export function useProfile() {
   return useQuery({
@@ -50,7 +51,23 @@ export function useWorkouts() {
   })
 }
 
-const SET_COLS = 'id, set_number, set_type, weight, unit, reps, duration_seconds, distance, distance_unit, drops, incline, created_at'
+const SET_COLS = 'id, set_number, set_type, weight, unit, reps, duration_seconds, distance, distance_unit, drops, incline, extra, created_at'
+
+function parseExtra(raw: unknown): Partial<Record<MetricKey, number>> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: Partial<Record<MetricKey, number>> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const n = Number(v)
+    if (isMetricKey(k) && Number.isFinite(n)) out[k] = n
+  }
+  return out
+}
+
+function parseMetrics(raw: string[] | null, name: string, kind: string): MetricKey[] {
+  if (kind !== 'cardio') return []
+  const keys = (raw ?? []).filter(isMetricKey)
+  return keys.length ? keys : defaultMetricsFor(name)
+}
 
 function parseDrops(raw: unknown): Drop[] {
   if (!Array.isArray(raw)) return []
@@ -62,7 +79,7 @@ function parseDrops(raw: unknown): Drop[] {
 export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
   const { data, error } = await supabase
     .from('workouts')
-    .select(`id, title, date, notes, created_at, started_at, finished_at, paused_at, paused_seconds, is_plan, workout_exercises(id, exercise_id, position, notes, completed_at, planned, exercises(name, kind, track_incline), sets(${SET_COLS}))`)
+    .select(`id, title, date, notes, created_at, started_at, finished_at, paused_at, paused_seconds, is_plan, workout_exercises(id, exercise_id, position, notes, completed_at, planned, exercises(name, kind, track_incline, metrics), sets(${SET_COLS}))`)
     .eq('id', id)
     .single()
   if (error) throw error
@@ -85,6 +102,7 @@ export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
         name: we.exercises?.name ?? '',
         kind: (we.exercises?.kind ?? 'strength') as ExerciseKind,
         track_incline: we.exercises?.track_incline ?? false,
+        metrics: parseMetrics(we.exercises?.metrics ?? null, we.exercises?.name ?? '', we.exercises?.kind ?? 'strength'),
         position: we.position,
         notes: we.notes,
         planned: we.planned,
@@ -100,6 +118,7 @@ export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
             distance_unit: s.distance_unit as DistanceUnit | null,
             drops: parseDrops(s.drops),
             incline: s.incline == null ? null : Number(s.incline),
+            extra: parseExtra(s.extra),
           })),
       })),
   }
@@ -135,6 +154,7 @@ export function useAllSets() {
         distance_unit: s.distance_unit as DistanceUnit | null,
         drops: parseDrops(s.drops),
         incline: s.incline == null ? null : Number(s.incline),
+        extra: parseExtra(s.extra),
         created_at: s.created_at,
         workout_exercise_id: s.workout_exercise_id,
         exercise_id: s.workout_exercises.exercise_id,
@@ -154,12 +174,12 @@ export function useExercises() {
     queryFn: async (): Promise<Exercise[]> => {
       const { data, error } = await supabase
         .from('exercises')
-        .select('id, name, kind, track_incline, workout_exercises(workouts(date, is_plan))')
+        .select('id, name, kind, track_incline, metrics, workout_exercises(workouts(date, is_plan))')
         .order('name')
       if (error) throw error
       return data.map((e) => {
         const dates = e.workout_exercises.filter((we) => we.workouts && !we.workouts.is_plan).map((we) => we.workouts?.date ?? '').filter(Boolean)
-        return { id: e.id, name: e.name, kind: e.kind as ExerciseKind, track_incline: e.track_incline, lastUsed: dates.length ? dates.sort().at(-1) : undefined }
+        return { id: e.id, name: e.name, kind: e.kind as ExerciseKind, track_incline: e.track_incline, metrics: parseMetrics(e.metrics, e.name, e.kind), lastUsed: dates.length ? dates.sort().at(-1) : undefined }
       })
     },
   })

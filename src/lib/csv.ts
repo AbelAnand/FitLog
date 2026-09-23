@@ -7,12 +7,12 @@ function esc(v: string | number | null): string {
 }
 
 export function setsToCsv(rows: SetRow[]): string {
-  const header = ['date', 'workout', 'exercise', 'kind', 'set', 'type', 'weight', 'unit', 'reps', 'duration_seconds', 'distance', 'distance_unit', 'incline_pct']
+  const header = ['date', 'workout', 'exercise', 'kind', 'set', 'type', 'weight', 'unit', 'reps', 'duration_seconds', 'distance', 'distance_unit', 'incline_pct', 'speed', 'level', 'calories', 'heart_rate', 'floors', 'watts', 'rpm']
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date) || a.created_at.localeCompare(b.created_at))
   const lines = sorted.flatMap((r) => [
-    [r.date, r.workout_title, r.exercise_name, r.exercise_kind, r.set_number, r.set_type, r.weight, r.unit, r.reps, r.duration_seconds, r.distance, r.distance_unit, r.incline].map(esc).join(','),
+    [r.date, r.workout_title, r.exercise_name, r.exercise_kind, r.set_number, r.set_type, r.weight, r.unit, r.reps, r.duration_seconds, r.distance, r.distance_unit, r.incline, r.extra.speed ?? null, r.extra.level ?? null, r.extra.calories ?? null, r.extra.hr ?? null, r.extra.floors ?? null, r.extra.watts ?? null, r.extra.rpm ?? null].map(esc).join(','),
     // Each weight-drop of a drop set becomes its own line, labelled with the parent set number.
-    ...r.drops.map((d, i) => [r.date, r.workout_title, r.exercise_name, r.exercise_kind, `${r.set_number}.${i + 1}`, 'drop', d.weight, r.unit, d.reps, null, null, null, null].map(esc).join(',')),
+    ...r.drops.map((d, i) => [r.date, r.workout_title, r.exercise_name, r.exercise_kind, `${r.set_number}.${i + 1}`, 'drop', d.weight, r.unit, d.reps, null, null, null, null, null, null, null, null, null, null, null].map(esc).join(',')),
   ])
   return [header.join(','), ...lines].join('\n')
 }

@@ -7,13 +7,16 @@ import { keys } from './keys'
 import { fetchWorkout } from './queries'
 import type { Json } from '../lib/database.types'
 import type { Drop, ExerciseKind, Profile, SetDetail, SetPatch, WorkoutDetail } from './types'
+import { defaultMetricsFor, type MetricKey } from '../data/cardio-metrics'
 
 /** Postgres jsonb wants plain JSON; drops are simple objects so a cast is safe. */
 const dropsJson = (drops: Drop[] | undefined): Json => (drops ?? []).map((d) => ({ weight: d.weight, reps: d.reps }))
 
+const extraJson = (extra: Partial<Record<MetricKey, number>> | undefined): Json => ({ ...(extra ?? {}) })
+
 function setPatchForDb(patch: SetPatch) {
-  const { drops, ...rest } = patch
-  return drops === undefined ? rest : { ...rest, drops: dropsJson(drops) }
+  const { drops, extra, ...rest } = patch
+  return { ...rest, ...(drops === undefined ? {} : { drops: dropsJson(drops) }), ...(extra === undefined ? {} : { extra: extraJson(extra) }) }
 }
 
 export function invalidateAll(qc: QueryClient, workoutId?: string) {
@@ -145,7 +148,7 @@ async function ensureExercise(userId: string, name: string, kind: ExerciseKind, 
   const clean = name.trim()
   const { data: existing } = await supabase.from('exercises').select('id').ilike('name', clean).maybeSingle()
   if (existing) return existing.id
-  const { data, error } = await supabase.from('exercises').insert({ user_id: userId, name: clean, kind, track_incline: kind === 'cardio' && trackIncline }).select('id').single()
+  const { data, error } = await supabase.from('exercises').insert({ user_id: userId, name: clean, kind, track_incline: kind === 'cardio' && trackIncline, metrics: kind === 'cardio' ? defaultMetricsFor(clean) : null }).select('id').single()
   if (error) throw error
   return data.id
 }
@@ -209,7 +212,7 @@ export function useUpdateWorkoutExercise(workoutId: string) {
 export function useUpdateExercise(workoutId?: string) {
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: async (input: { exerciseId: string; patch: { track_incline?: boolean } }) => {
+    mutationFn: async (input: { exerciseId: string; patch: { track_incline?: boolean; metrics?: MetricKey[] } }) => {
       const { error } = await supabase.from('exercises').update(input.patch).eq('id', input.exerciseId)
       if (error) throw error
     },
@@ -241,6 +244,7 @@ export interface NewSet {
   distance_unit?: DistanceUnit | null
   drops?: Drop[]
   incline?: number | null
+  extra?: Partial<Record<MetricKey, number>>
 }
 
 /** Insert one or many sets for an exercise. */
@@ -264,6 +268,7 @@ export function useAddSets(workoutId: string) {
           distance_unit: s.distance_unit ?? null,
           drops: dropsJson(s.drops),
           incline: s.incline ?? null,
+          extra: extraJson(s.extra),
         })),
       )
       if (error) throw error
@@ -358,6 +363,7 @@ export function useReplaceSets(workoutId: string) {
           distance_unit: s.distance_unit ?? null,
           drops: dropsJson(s.drops),
           incline: s.incline ?? null,
+          extra: extraJson(s.extra),
         })),
       )
       if (error) throw error
@@ -398,6 +404,7 @@ export function useRepeatLast(workoutId: string) {
               distance_unit: s.distance_unit,
               drops: dropsJson(s.drops),
               incline: s.incline,
+              extra: extraJson(s.extra),
             })),
           )
           if (setErr) throw setErr

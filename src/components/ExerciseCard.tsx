@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Drop, SetDetail, SetPatch, SetType, WorkoutExerciseDetail } from '../api/types'
 import type { NewSet } from '../api/mutations'
 import { tap } from '../lib/haptics'
-import { convert, convertDistance, formatDistance, formatDuration, formatPace, formatWeight, parseDuration, stepFor, toKg, toKm, type DistanceUnit, type Unit } from '../lib/units'
+import { convert, convertDistance, formatDistance, formatDuration, formatPace, formatWeight, parseDuration, stepFor, toKg, type DistanceUnit, type Unit } from '../lib/units'
 import { Button, Icon, MenuSheet, PrBadge, Segmented, Sheet, Stepper, Toggle } from './ui'
+import { MetricsSheet } from './MetricsSheet'
+import { METRIC_BY_KEY, type MetricKey } from '../data/cardio-metrics'
+import { cardioKm } from '../lib/prs'
 
 export interface LastSession {
   date: string
-  sets: Pick<SetDetail, 'weight' | 'unit' | 'reps' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline'>[]
+  sets: Pick<SetDetail, 'weight' | 'unit' | 'reps' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline' | 'extra'>[]
 }
 
 /** A sensible first drop: ~80% of the weight, rounded to a plate. */
@@ -19,8 +22,55 @@ function seedDrop(weight: number, reps: number, unit: Unit): Drop {
 const TYPE_LABEL: Record<SetType, string> = { warmup: 'Warm-up', working: 'Working', drop: 'Drop set', failure: 'To failure' }
 const TYPE_SHORT: Record<SetType, string> = { warmup: 'W', working: '', drop: 'D', failure: 'F' }
 
+type MetricSet = Pick<SetDetail, 'duration_seconds' | 'distance' | 'distance_unit' | 'incline' | 'extra'>
+
+/** Read a metric as a display string in the user's distance unit. */
+function metricText(s: MetricSet, k: MetricKey, du: DistanceUnit): string {
+  switch (k) {
+    case 'time': return s.duration_seconds ? formatDuration(s.duration_seconds) : ''
+    case 'distance': return s.distance ? formatDistance(convertDistance(s.distance, s.distance_unit ?? du, du)) : ''
+    case 'incline': return s.incline ? formatDistance(s.incline) : ''
+    case 'speed': return s.extra.speed ? formatDistance(convertDistance(s.extra.speed, s.distance_unit ?? du, du)) : ''
+    default: return s.extra[k] ? formatDistance(s.extra[k]!) : ''
+  }
+}
+
+/** Turn typed text into a patch for one metric. */
+function metricPatch(k: MetricKey, text: string, du: DistanceUnit, current: MetricSet): SetPatch {
+  const n = parseFloat(text.replace(',', '.'))
+  const num = Number.isFinite(n) && n > 0 ? n : null
+  switch (k) {
+    case 'time': return { duration_seconds: parseDuration(text) }
+    case 'distance': return { distance: num, distance_unit: du }
+    case 'incline': return { incline: num }
+    default: {
+      const extra = { ...current.extra }
+      if (num == null) delete extra[k]
+      else extra[k] = num
+      return k === 'speed' ? { extra, distance_unit: du } : { extra }
+    }
+  }
+}
+
+function hasAnyMetric(s: MetricSet): boolean {
+  return !!s.duration_seconds || !!s.distance || !!s.incline || Object.values(s.extra).some((v) => !!v)
+}
+
 function isBlank(s: SetDetail, cardio: boolean) {
-  return cardio ? !s.duration_seconds && !s.distance : s.weight === 0 && s.reps === 0
+  return cardio ? !hasAnyMetric(s) : s.weight === 0 && s.reps === 0
+}
+
+/** "30:00 · 3 mph · 12%" style summary of one cardio set. */
+function cardioSummary(s: MetricSet, metrics: MetricKey[], du: DistanceUnit): string {
+  return metrics
+    .map((k) => {
+      const v = metricText(s, k, du)
+      if (!v) return ''
+      const unit = METRIC_BY_KEY[k].unit(du)
+      return k === 'time' ? v : k === 'incline' ? `${v}%` : unit ? `${v} ${unit}` : `${METRIC_BY_KEY[k].short} ${v}`
+    })
+    .filter(Boolean)
+    .join(' · ')
 }
 
 export function ExerciseCard({
@@ -36,7 +86,7 @@ export function ExerciseCard({
   onDeleteSet,
   onNotes,
   onComplete,
-  onTrackIncline,
+  onMetrics,
   onRemove,
 }: {
   we: WorkoutExerciseDetail
@@ -53,17 +103,18 @@ export function ExerciseCard({
   onDeleteSet: (setId: string) => void
   onNotes: (notes: string) => void
   onComplete: (completed: boolean) => void
-  onTrackIncline: (on: boolean) => void
+  onMetrics: (metrics: MetricKey[]) => void
   onRemove: () => void
 }) {
   const cardio = we.kind === 'cardio'
-  const incline = cardio && we.track_incline
   // Check-off exists only for exercises that came from a plan, once the workout is live.
   const checkable = !plan && we.planned
   const done = checkable && !!we.completed_at
   const [menu, setMenu] = useState(false)
   const [rowMenu, setRowMenu] = useState<SetDetail | null>(null)
   const [quick, setQuick] = useState(false)
+  const [metricsSheet, setMetricsSheet] = useState(false)
+  const metrics = we.metrics
   const [showNotes, setShowNotes] = useState(!!we.notes)
   const [notes, setNotes] = useState(we.notes)
   const notesTimer = useRef<number | null>(null)
@@ -111,17 +162,18 @@ export function ExerciseCard({
         distance_unit: cardio ? lastSet?.distance_unit ?? distanceUnit : null,
         drops: type === 'drop' ? (lastSet?.drops.length ? lastSet.drops : [seedDrop(lastSet?.weight ?? 0, lastSet?.reps ?? 0, unit)]) : [],
         incline: lastSet?.incline ?? null,
+        extra: lastSet?.extra ?? {},
       },
     ])
   }
 
   const duplicate = (s: SetDetail) => {
-    onAddSets([{ set_number: (lastSet?.set_number ?? 0) + 1, weight: s.weight, reps: s.reps, unit: s.unit, set_type: s.set_type, duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit, drops: s.drops, incline: s.incline }])
+    onAddSets([{ set_number: (lastSet?.set_number ?? 0) + 1, weight: s.weight, reps: s.reps, unit: s.unit, set_type: s.set_type, duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit, drops: s.drops, incline: s.incline, extra: s.extra }])
   }
 
   const copyToBelow = (s: SetDetail) => {
     const idx = we.sets.findIndex((x) => x.id === s.id)
-    const patch: SetPatch = cardio ? { duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit, incline: s.incline } : { weight: s.weight, reps: s.reps, unit: s.unit, drops: s.drops }
+    const patch: SetPatch = cardio ? { duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit, incline: s.incline, extra: s.extra } : { weight: s.weight, reps: s.reps, unit: s.unit, drops: s.drops }
     onUpdateSets(we.sets.slice(idx + 1).map((b) => ({ setId: b.id, patch })))
   }
 
@@ -139,6 +191,7 @@ export function ExerciseCard({
         distance_unit: s.distance_unit,
         drops: s.drops,
         incline: s.incline,
+        extra: s.extra,
       })),
     )
   }
@@ -147,7 +200,7 @@ export function ExerciseCard({
     ? last.sets
         .map((s) =>
           cardio
-            ? `${s.duration_seconds ? formatDuration(s.duration_seconds) : '–'}${s.distance ? ` · ${formatDistance(convertDistance(s.distance, s.distance_unit ?? distanceUnit, distanceUnit))} ${distanceUnit}` : ''}${s.incline ? ` @${formatDistance(s.incline)}%` : ''}`
+            ? cardioSummary(s, metrics, distanceUnit) || '–'
             : `${s.set_type === 'warmup' ? 'W ' : ''}${formatWeight(convert(s.weight, s.unit, unit))}×${s.reps}${s.drops.map((d) => `↓${formatWeight(convert(d.weight, s.unit, unit))}×${d.reps}`).join('')}`,
         )
         .join(', ')
@@ -160,7 +213,7 @@ export function ExerciseCard({
     let km = 0
     for (const s of we.sets) {
       sec += s.duration_seconds ?? 0
-      km += s.distance ? toKm(s.distance, s.distance_unit ?? distanceUnit) : 0
+      km += cardioKm(s)
     }
     const dist = km ? convertDistance(km, 'km', distanceUnit) : 0
     return { sec, dist }
@@ -205,18 +258,25 @@ export function ExerciseCard({
         </div>
       </div>
 
-      <div className={`grid ${incline ? 'grid-cols-[40px_1fr_1fr_0.8fr_44px]' : 'grid-cols-[40px_1fr_1fr_44px]'} gap-2 px-4 text-[11px] font-semibold uppercase tracking-wider text-faint`}>
+      <div className="grid gap-2 px-4 text-[11px] font-semibold uppercase tracking-wider text-faint" style={{ gridTemplateColumns: cardio ? `40px repeat(${metrics.length}, minmax(0, 1fr)) 44px` : '40px 1fr 1fr 44px' }}>
         <div>Set</div>
-        <div className="text-center">{cardio ? 'Time' : unit}</div>
-        <div className="text-center">{cardio ? distanceUnit : 'Reps'}</div>
-        {incline && <div className="text-center">Incl %</div>}
+        {cardio ? (
+          metrics.map((k) => (
+            <div key={k} className="text-center truncate">{METRIC_BY_KEY[k].short}{METRIC_BY_KEY[k].unit(distanceUnit) ? ` ${METRIC_BY_KEY[k].unit(distanceUnit)}` : ''}</div>
+          ))
+        ) : (
+          <>
+            <div className="text-center">{unit}</div>
+            <div className="text-center">Reps</div>
+          </>
+        )}
         <div />
       </div>
 
       <div className="px-4 pb-2 pt-1 flex flex-col gap-1.5">
         {we.sets.map((s, i) =>
           cardio ? (
-            <CardioRow key={s.id} set={s} label={numbers[i]} distanceUnit={distanceUnit} incline={incline} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} />
+            <CardioRow key={s.id} set={s} label={numbers[i]} metrics={metrics} distanceUnit={distanceUnit} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} />
           ) : (
             <StrengthRow key={s.id} set={s} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onDrops={(drops) => onUpdateSets([{ setId: s.id, patch: { drops } }])} onMenu={() => setRowMenu(s)} />
           ),
@@ -265,12 +325,10 @@ export function ExerciseCard({
           ...(cardio ? [] : [{ label: 'Add drop set', sub: 'One set that steps down in weight', icon: <Icon.Sparkle />, onClick: () => addSet('drop') }]),
           ...(cardio
             ? [{
-                label: 'Track incline',
-                sub: 'Adds an incline % column for this exercise',
-                icon: <Icon.Chart />,
-                keepOpen: true,
-                right: <Toggle checked={we.track_incline} onChange={onTrackIncline} label="Track incline" />,
-                onClick: () => onTrackIncline(!we.track_incline),
+                label: 'Variables…',
+                sub: metrics.map((k) => METRIC_BY_KEY[k].label).join(', '),
+                icon: <Icon.Rows />,
+                onClick: () => setMetricsSheet(true),
               }]
             : []),
           { label: 'Quick fill sets…', sub: 'Several sets at the same weight and reps', icon: <Icon.Rows />, onClick: () => setQuick(true) },
@@ -291,10 +349,13 @@ export function ExerciseCard({
         hasBelow={!!rowMenu && we.sets.findIndex((s) => s.id === rowMenu.id) < we.sets.length - 1}
       />
 
+      {cardio && <MetricsSheet open={metricsSheet} onClose={() => setMetricsSheet(false)} name={we.name} value={metrics} distanceUnit={distanceUnit} onSave={onMetrics} />}
+
       <QuickFill
         open={quick}
         onClose={() => setQuick(false)}
         cardio={cardio}
+        metrics={metrics}
         unit={unit}
         distanceUnit={distanceUnit}
         seed={lastSet ?? null}
@@ -412,27 +473,35 @@ function DropRow({ drop, unit, displayUnit, label, onChange, onRemove }: { drop:
   )
 }
 
-function CardioRow({ set, label, distanceUnit, incline, onChange, onMenu }: { set: SetDetail; label: string; distanceUnit: DistanceUnit; incline: boolean; onChange: (p: SetPatch) => void; onMenu: () => void }) {
-  const inc = useLocalField(set.incline ? formatDistance(set.incline) : '', (s) => {
-    const n = parseFloat(s.replace(',', '.'))
-    onChange({ incline: Number.isFinite(n) && n > 0 ? n : null })
-  })
-  const t = useLocalField(set.duration_seconds ? formatDuration(set.duration_seconds) : '', (s) => onChange({ duration_seconds: parseDuration(s) }))
-  const displayDist = set.distance == null ? null : convertDistance(set.distance, set.distance_unit ?? distanceUnit, distanceUnit)
-  const d = useLocalField(displayDist ? formatDistance(displayDist) : '', (s) => {
-    const n = parseFloat(s.replace(',', '.'))
-    onChange({ distance: Number.isFinite(n) && n > 0 ? n : null, distance_unit: distanceUnit })
-  })
+function CardioRow({ set, label, metrics, distanceUnit, onChange, onMenu }: { set: SetDetail; label: string; metrics: MetricKey[]; distanceUnit: DistanceUnit; onChange: (p: SetPatch) => void; onMenu: () => void }) {
   return (
-    <div className={`grid ${incline ? 'grid-cols-[40px_1fr_1fr_0.8fr_44px]' : 'grid-cols-[40px_1fr_1fr_44px]'} gap-2 items-center`}>
+    <div className="grid gap-2 items-center" style={{ gridTemplateColumns: `40px repeat(${metrics.length}, minmax(0, 1fr)) 44px` }}>
       <Badge label={label} type={set.set_type} isPr={false} onClick={onMenu} />
-      <input className={inputClass} inputMode="numeric" placeholder="mm:ss" value={t.v} onFocus={(e) => e.target.select()} onBlur={t.flush} onChange={(e) => t.onChange(e.target.value.replace(/[^\d:hms]/gi, ''))} aria-label={`Interval ${label} time`} />
-      <input className={inputClass} inputMode="decimal" placeholder="0" value={d.v} onFocus={(e) => e.target.select()} onBlur={d.flush} onChange={(e) => d.onChange(e.target.value)} aria-label={`Interval ${label} distance`} />
-      {incline && <input className={inputClass} inputMode="decimal" placeholder="0" value={inc.v} onFocus={(e) => e.target.select()} onBlur={inc.flush} onChange={(e) => inc.onChange(e.target.value)} aria-label={`Interval ${label} incline`} />}
+      {metrics.map((k) => (
+        <MetricInput key={k} set={set} k={k} distanceUnit={distanceUnit} label={`Interval ${label} ${METRIC_BY_KEY[k].label.toLowerCase()}`} onChange={onChange} />
+      ))}
       <button type="button" aria-label="Interval options" onClick={() => { tap(); onMenu() }} className="h-11 w-11 flex items-center justify-center text-faint active:text-text">
         <Icon.More />
       </button>
     </div>
+  )
+}
+
+function MetricInput({ set, k, distanceUnit, label, onChange }: { set: SetDetail; k: MetricKey; distanceUnit: DistanceUnit; label: string; onChange: (p: SetPatch) => void }) {
+  const def = METRIC_BY_KEY[k]
+  const f = useLocalField(metricText(set, k, distanceUnit), (text) => onChange(metricPatch(k, text, distanceUnit, set)))
+  const clean = (v: string) => (k === 'time' ? v.replace(/[^\d:hms]/gi, '') : v)
+  return (
+    <input
+      className={inputClass}
+      inputMode={def.inputMode}
+      placeholder={def.placeholder}
+      value={f.v}
+      onFocus={(e) => e.target.select()}
+      onBlur={f.flush}
+      onChange={(e) => f.onChange(clean(e.target.value))}
+      aria-label={label}
+    />
   )
 }
 
@@ -482,10 +551,11 @@ function RowMenu({ set, cardio, hasBelow, onClose, onType, onDuplicate, onCopyBe
 
 /* ---------- Quick fill ---------- */
 
-function QuickFill({ open, onClose, cardio, unit, distanceUnit, seed, existing, onAdd, onReplace }: {
+function QuickFill({ open, onClose, cardio, metrics, unit, distanceUnit, seed, existing, onAdd, onReplace }: {
   open: boolean
   onClose: () => void
   cardio: boolean
+  metrics: MetricKey[]
   unit: Unit
   distanceUnit: DistanceUnit
   seed: SetDetail | null
@@ -496,8 +566,7 @@ function QuickFill({ open, onClose, cardio, unit, distanceUnit, seed, existing, 
   const [count, setCount] = useState(3)
   const [weight, setWeight] = useState('')
   const [reps, setReps] = useState('')
-  const [time, setTime] = useState('')
-  const [dist, setDist] = useState('')
+  const [vals, setVals] = useState<Partial<Record<MetricKey, string>>>({})
   const [warmup, setWarmup] = useState(false)
   const [mode, setMode] = useState<'add' | 'replace'>('replace')
 
@@ -506,18 +575,18 @@ function QuickFill({ open, onClose, cardio, unit, distanceUnit, seed, existing, 
     const w = seed && seed.weight ? convert(seed.weight, seed.unit, unit) : 0
     setWeight(w ? formatWeight(w) : '')
     setReps(seed?.reps ? String(seed.reps) : '')
-    setTime(seed?.duration_seconds ? formatDuration(seed.duration_seconds) : '')
-    setDist(seed?.distance ? formatDistance(convertDistance(seed.distance, seed.distance_unit ?? distanceUnit, distanceUnit)) : '')
+    setVals(seed ? Object.fromEntries(metrics.map((k) => [k, metricText(seed, k, distanceUnit)])) : {})
     setMode(existing > 0 ? 'add' : 'replace')
     setWarmup(false)
-  }, [open, seed, unit, distanceUnit, existing])
+  }, [open, seed, unit, distanceUnit, existing, metrics])
 
   const build = (): Omit<NewSet, 'set_number'>[] => {
     const out: Omit<NewSet, 'set_number'>[] = []
     if (cardio) {
-      const sec = parseDuration(time)
-      const d = parseFloat(dist.replace(',', '.'))
-      for (let i = 0; i < count; i++) out.push({ weight: 0, reps: 0, unit, set_type: 'working', duration_seconds: sec, distance: Number.isFinite(d) && d > 0 ? d : null, distance_unit: distanceUnit })
+      // Fold every metric's text into one patch, then stamp it onto N intervals.
+      let acc: MetricSet = { duration_seconds: null, distance: null, distance_unit: distanceUnit, incline: null, extra: {} }
+      for (const k of metrics) acc = { ...acc, ...metricPatch(k, vals[k] ?? '', distanceUnit, acc) }
+      for (let i = 0; i < count; i++) out.push({ weight: 0, reps: 0, unit, set_type: 'working', duration_seconds: acc.duration_seconds, distance: acc.distance, distance_unit: distanceUnit, incline: acc.incline, extra: acc.extra })
       return out
     }
     const w = Math.max(0, parseFloat(weight.replace(',', '.')) || 0)
@@ -550,8 +619,13 @@ function QuickFill({ open, onClose, cardio, unit, distanceUnit, seed, existing, 
 
       {cardio ? (
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <Field label="Time" value={time} onChange={(v) => setTime(v.replace(/[^\d:hms]/gi, ''))} placeholder="mm:ss" inputMode="numeric" />
-          <Field label={`Distance (${distanceUnit})`} value={dist} onChange={setDist} placeholder="0" inputMode="decimal" />
+          {metrics.map((k) => {
+            const def = METRIC_BY_KEY[k]
+            const u = def.unit(distanceUnit)
+            return (
+              <Field key={k} label={u ? `${def.label} (${u})` : def.label} value={vals[k] ?? ''} onChange={(v) => setVals((s) => ({ ...s, [k]: k === 'time' ? v.replace(/[^\d:hms]/gi, '') : v }))} placeholder={def.placeholder} inputMode={def.inputMode} />
+            )
+          })}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 mb-3">

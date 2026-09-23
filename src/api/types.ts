@@ -1,4 +1,5 @@
 import type { DistanceUnit, Unit } from '../lib/units'
+import type { MetricKey } from '../data/cardio-metrics'
 
 export type ExerciseKind = 'strength' | 'cardio'
 export type SetType = 'warmup' | 'working' | 'drop' | 'failure'
@@ -48,6 +49,8 @@ export interface SetDetail {
   distance_unit: DistanceUnit | null
   drops: Drop[]
   incline: number | null
+  /** Cardio metrics without a dedicated column (speed, level, calories, hr, …). Speed is per distance unit. */
+  extra: Partial<Record<MetricKey, number>>
   created_at: string
 }
 
@@ -57,6 +60,8 @@ export interface WorkoutExerciseDetail {
   name: string
   kind: ExerciseKind
   track_incline: boolean
+  /** Ordered cardio variables for this exercise. */
+  metrics: MetricKey[]
   position: number
   notes: string
   /** Was part of the plan this workout started from. */
@@ -80,9 +85,10 @@ export interface Exercise {
   name: string
   kind: ExerciseKind
   track_incline: boolean
+  metrics: MetricKey[]
   /** Most recent date this exercise was logged, if ever. */
   lastUsed?: string
 }
 
 /** Fields a set row can change. */
-export type SetPatch = Partial<Pick<SetDetail, 'weight' | 'reps' | 'unit' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline'>>
+export type SetPatch = Partial<Pick<SetDetail, 'weight' | 'reps' | 'unit' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline' | 'extra'>>
