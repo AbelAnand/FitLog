@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { SetDetail, SetPatch, SetType, WorkoutExerciseDetail } from '../api/types'
+import type { Drop, SetDetail, SetPatch, SetType, WorkoutExerciseDetail } from '../api/types'
 import type { NewSet } from '../api/mutations'
 import { tap } from '../lib/haptics'
 import { convert, convertDistance, formatDistance, formatDuration, formatPace, formatWeight, parseDuration, stepFor, toKg, toKm, type DistanceUnit, type Unit } from '../lib/units'
@@ -7,7 +7,13 @@ import { Button, Icon, MenuSheet, PrBadge, Segmented, Sheet, Stepper, Toggle } f
 
 export interface LastSession {
   date: string
-  sets: Pick<SetDetail, 'weight' | 'unit' | 'reps' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit'>[]
+  sets: Pick<SetDetail, 'weight' | 'unit' | 'reps' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline'>[]
+}
+
+/** A sensible first drop: ~80% of the weight, rounded to a plate. */
+function seedDrop(weight: number, reps: number, unit: Unit): Drop {
+  const step = stepFor(unit)
+  return { weight: Math.max(step, Math.round((weight * 0.8) / step) * step), reps: reps || 8 }
 }
 
 const TYPE_LABEL: Record<SetType, string> = { warmup: 'Warm-up', working: 'Working', drop: 'Drop set', failure: 'To failure' }
@@ -23,11 +29,14 @@ export function ExerciseCard({
   distanceUnit,
   prevBestKg,
   last,
+  plan = false,
   onUpdateSets,
   onAddSets,
   onReplaceSets,
   onDeleteSet,
   onNotes,
+  onComplete,
+  onTrackIncline,
   onRemove,
 }: {
   we: WorkoutExerciseDetail
@@ -36,14 +45,20 @@ export function ExerciseCard({
   /** Best weight (kg) for this exercise in any other workout. */
   prevBestKg: number
   last?: LastSession
+  /** Planned workouts show targets without check-off or PR badges. */
+  plan?: boolean
   onUpdateSets: (updates: { setId: string; patch: SetPatch }[]) => void
   onAddSets: (sets: NewSet[]) => void
   onReplaceSets: (sets: NewSet[]) => void
   onDeleteSet: (setId: string) => void
   onNotes: (notes: string) => void
+  onComplete: (completed: boolean) => void
+  onTrackIncline: (on: boolean) => void
   onRemove: () => void
 }) {
   const cardio = we.kind === 'cardio'
+  const incline = cardio && we.track_incline
+  const done = !!we.completed_at
   const [menu, setMenu] = useState(false)
   const [rowMenu, setRowMenu] = useState<SetDetail | null>(null)
   const [quick, setQuick] = useState(false)
@@ -54,12 +69,12 @@ export function ExerciseCard({
 
   // PR: the first working set reaching the session's top weight above the previous best.
   const prSetId = useMemo(() => {
-    if (cardio) return null
+    if (cardio || plan) return null
     let topKg = 0
     for (const s of we.sets) if (s.reps > 0 && s.set_type !== 'warmup') topKg = Math.max(topKg, toKg(s.weight, s.unit))
     if (topKg <= prevBestKg || topKg === 0) return null
     return we.sets.find((s) => s.reps > 0 && s.set_type !== 'warmup' && toKg(s.weight, s.unit) === topKg)?.id ?? null
-  }, [we.sets, prevBestKg, cardio])
+  }, [we.sets, prevBestKg, cardio, plan])
 
   // Working-set numbering skips warm-ups so "set 1" is the first real set.
   const numbers = useMemo(() => {
@@ -92,17 +107,19 @@ export function ExerciseCard({
         duration_seconds: lastSet?.duration_seconds ?? null,
         distance: lastSet?.distance ?? null,
         distance_unit: cardio ? lastSet?.distance_unit ?? distanceUnit : null,
+        drops: type === 'drop' ? (lastSet?.drops.length ? lastSet.drops : [seedDrop(lastSet?.weight ?? 0, lastSet?.reps ?? 0, unit)]) : [],
+        incline: lastSet?.incline ?? null,
       },
     ])
   }
 
   const duplicate = (s: SetDetail) => {
-    onAddSets([{ set_number: (lastSet?.set_number ?? 0) + 1, weight: s.weight, reps: s.reps, unit: s.unit, set_type: s.set_type, duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit }])
+    onAddSets([{ set_number: (lastSet?.set_number ?? 0) + 1, weight: s.weight, reps: s.reps, unit: s.unit, set_type: s.set_type, duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit, drops: s.drops, incline: s.incline }])
   }
 
   const copyToBelow = (s: SetDetail) => {
     const idx = we.sets.findIndex((x) => x.id === s.id)
-    const patch: SetPatch = cardio ? { duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit } : { weight: s.weight, reps: s.reps, unit: s.unit }
+    const patch: SetPatch = cardio ? { duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit, incline: s.incline } : { weight: s.weight, reps: s.reps, unit: s.unit, drops: s.drops }
     onUpdateSets(we.sets.slice(idx + 1).map((b) => ({ setId: b.id, patch })))
   }
 
@@ -118,6 +135,8 @@ export function ExerciseCard({
         duration_seconds: s.duration_seconds,
         distance: s.distance,
         distance_unit: s.distance_unit,
+        drops: s.drops,
+        incline: s.incline,
       })),
     )
   }
@@ -126,8 +145,8 @@ export function ExerciseCard({
     ? last.sets
         .map((s) =>
           cardio
-            ? `${s.duration_seconds ? formatDuration(s.duration_seconds) : '–'}${s.distance ? ` · ${formatDistance(convertDistance(s.distance, s.distance_unit ?? distanceUnit, distanceUnit))} ${distanceUnit}` : ''}`
-            : `${s.set_type === 'warmup' ? 'W ' : ''}${formatWeight(convert(s.weight, s.unit, unit))}×${s.reps}`,
+            ? `${s.duration_seconds ? formatDuration(s.duration_seconds) : '–'}${s.distance ? ` · ${formatDistance(convertDistance(s.distance, s.distance_unit ?? distanceUnit, distanceUnit))} ${distanceUnit}` : ''}${s.incline ? ` @${formatDistance(s.incline)}%` : ''}`
+            : `${s.set_type === 'warmup' ? 'W ' : ''}${formatWeight(convert(s.weight, s.unit, unit))}×${s.reps}${s.drops.map((d) => `↓${formatWeight(convert(d.weight, s.unit, unit))}×${d.reps}`).join('')}`,
         )
         .join(', ')
     : null
@@ -146,11 +165,25 @@ export function ExerciseCard({
   }, [we.sets, cardio, distanceUnit])
 
   return (
-    <div className="bg-surface rounded-[18px] border border-border/60">
-      <div className="flex items-start justify-between pl-4 pr-1 pt-3 pb-1">
-        <div className="min-w-0 flex-1">
+    <div className={`bg-surface rounded-[18px] border ${done ? 'border-accent/40' : 'border-border/60'}`}>
+      <div className="flex items-start justify-between pl-3 pr-1 pt-3 pb-1">
+        {!plan && (
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={done}
+            aria-label={done ? `Mark ${we.name} not done` : `Mark ${we.name} done`}
+            onClick={() => { tap(); onComplete(!done) }}
+            className="mt-0.5 mr-2 h-7 w-7 shrink-0 flex items-center justify-center"
+          >
+            <span className={`h-6 w-6 rounded-full flex items-center justify-center border-2 transition ${done ? 'bg-accent border-accent text-accent-ink' : 'border-faint text-transparent'}`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>
+            </span>
+          </button>
+        )}
+        <div className={`min-w-0 flex-1 ${plan ? 'pl-1' : ''}`}>
           <div className="flex items-center gap-2">
-            <div className="text-[17px] font-semibold truncate">{we.name}</div>
+            <div className={`text-[17px] font-semibold truncate ${done ? 'text-muted' : ''}`}>{we.name}</div>
             {cardio && <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted bg-surface-2 rounded px-1.5 py-0.5">Cardio</span>}
           </div>
           {lastLine && (
@@ -170,19 +203,20 @@ export function ExerciseCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 px-4 text-[11px] font-semibold uppercase tracking-wider text-faint">
+      <div className={`grid ${incline ? 'grid-cols-[40px_1fr_1fr_0.8fr_44px]' : 'grid-cols-[40px_1fr_1fr_44px]'} gap-2 px-4 text-[11px] font-semibold uppercase tracking-wider text-faint`}>
         <div>Set</div>
         <div className="text-center">{cardio ? 'Time' : unit}</div>
         <div className="text-center">{cardio ? distanceUnit : 'Reps'}</div>
+        {incline && <div className="text-center">Incl %</div>}
         <div />
       </div>
 
       <div className="px-4 pb-2 pt-1 flex flex-col gap-1.5">
         {we.sets.map((s, i) =>
           cardio ? (
-            <CardioRow key={s.id} set={s} label={numbers[i]} distanceUnit={distanceUnit} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} />
+            <CardioRow key={s.id} set={s} label={numbers[i]} distanceUnit={distanceUnit} incline={incline} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} />
           ) : (
-            <StrengthRow key={s.id} set={s} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} />
+            <StrengthRow key={s.id} set={s} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onDrops={(drops) => onUpdateSets([{ setId: s.id, patch: { drops } }])} onMenu={() => setRowMenu(s)} />
           ),
         )}
       </div>
@@ -226,6 +260,17 @@ export function ExerciseCard({
         title={we.name}
         items={[
           ...(cardio ? [] : [{ label: 'Add warm-up set', sub: 'Lighter set, excluded from PRs and volume', icon: <Icon.Flag />, onClick: () => addSet('warmup') }]),
+          ...(cardio ? [] : [{ label: 'Add drop set', sub: 'One set that steps down in weight', icon: <Icon.Sparkle />, onClick: () => addSet('drop') }]),
+          ...(cardio
+            ? [{
+                label: 'Track incline',
+                sub: 'Adds an incline % column for this exercise',
+                icon: <Icon.Chart />,
+                keepOpen: true,
+                right: <Toggle checked={we.track_incline} onChange={onTrackIncline} label="Track incline" />,
+                onClick: () => onTrackIncline(!we.track_incline),
+              }]
+            : []),
           { label: 'Quick fill sets…', sub: 'Several sets at the same weight and reps', icon: <Icon.Rows />, onClick: () => setQuick(true) },
           ...(last?.sets.length ? [{ label: 'Use last session', sub: `${last.date}: ${lastLine}`, icon: <Icon.Repeat />, onClick: useLast }] : []),
           { label: we.notes || showNotes ? 'Edit notes' : 'Add notes', icon: <Icon.Note />, onClick: () => setShowNotes(true) },
@@ -237,7 +282,7 @@ export function ExerciseCard({
         set={rowMenu}
         cardio={cardio}
         onClose={() => setRowMenu(null)}
-        onType={(t) => rowMenu && onUpdateSets([{ setId: rowMenu.id, patch: { set_type: t } }])}
+        onType={(t) => rowMenu && onUpdateSets([{ setId: rowMenu.id, patch: { set_type: t, drops: t === 'drop' ? (rowMenu.drops.length ? rowMenu.drops : [seedDrop(rowMenu.weight, rowMenu.reps, unit)]) : [] } }])}
         onDuplicate={() => rowMenu && duplicate(rowMenu)}
         onCopyBelow={() => rowMenu && copyToBelow(rowMenu)}
         onDelete={() => rowMenu && onDeleteSet(rowMenu.id)}
@@ -301,26 +346,75 @@ function useLocalField(serverValue: string, commit: (v: string) => void, delay =
   return { v, onChange, flush }
 }
 
-function StrengthRow({ set, label, unit, isPr, onChange, onMenu }: { set: SetDetail; label: string; unit: Unit; isPr: boolean; onChange: (p: SetPatch) => void; onMenu: () => void }) {
+function StrengthRow({ set, label, unit, isPr, onChange, onDrops, onMenu }: { set: SetDetail; label: string; unit: Unit; isPr: boolean; onChange: (p: SetPatch) => void; onDrops: (drops: Drop[]) => void; onMenu: () => void }) {
   const displayWeight = set.unit === unit ? set.weight : convert(set.weight, set.unit, unit)
   const w = useLocalField(displayWeight ? formatWeight(displayWeight) : '', (s) => onChange({ weight: Math.max(0, parseFloat(s.replace(',', '.')) || 0), unit }))
   const r = useLocalField(set.reps ? String(set.reps) : '', (s) => onChange({ reps: Math.max(0, parseInt(s, 10) || 0) }))
+  const isDrop = set.set_type === 'drop'
   return (
-    <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center">
-      <Badge label={label} type={set.set_type} isPr={isPr} onClick={onMenu} />
-      <div className="relative">
-        <input className={inputClass} inputMode="decimal" placeholder="0" value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`Set ${label} weight`} />
-        {isPr && <PrBadge className="absolute -top-2 -right-1 pointer-events-none" />}
+    <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center">
+        <Badge label={label} type={set.set_type} isPr={isPr} onClick={onMenu} />
+        <div className="relative">
+          <input className={inputClass} inputMode="decimal" placeholder="0" value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`Set ${label} weight`} />
+          {isPr && <PrBadge className="absolute -top-2 -right-1 pointer-events-none" />}
+        </div>
+        <input className={inputClass} inputMode="numeric" placeholder="0" value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`Set ${label} reps`} />
+        <button type="button" aria-label="Set options" onClick={() => { tap(); onMenu() }} className="h-11 w-11 flex items-center justify-center text-faint active:text-text">
+          <Icon.More />
+        </button>
       </div>
-      <input className={inputClass} inputMode="numeric" placeholder="0" value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`Set ${label} reps`} />
-      <button type="button" aria-label="Set options" onClick={() => { tap(); onMenu() }} className="h-11 w-11 flex items-center justify-center text-faint active:text-text">
-        <Icon.More />
-      </button>
+      {isDrop && (
+        <div className="ml-[48px] flex flex-col gap-1.5 border-l-2 border-accent/30 pl-2">
+          {set.drops.map((d, i) => (
+            <DropRow
+              key={i}
+              drop={d}
+              unit={set.unit}
+              displayUnit={unit}
+              label={`Set ${label} drop ${i + 1}`}
+              onChange={(nd) => onDrops(set.drops.map((x, j) => (j === i ? nd : x)))}
+              onRemove={() => onDrops(set.drops.filter((_, j) => j !== i))}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              tap()
+              const prev = set.drops.at(-1) ?? { weight: set.weight, reps: set.reps }
+              onDrops([...set.drops, seedDrop(prev.weight, prev.reps, set.unit)])
+            }}
+            className="self-start h-8 px-2 -ml-1 text-[13px] font-medium text-accent"
+          >
+            + Drop again
+          </button>
+        </div>
+      )}
     </div>
   )
 }
 
-function CardioRow({ set, label, distanceUnit, onChange, onMenu }: { set: SetDetail; label: string; distanceUnit: DistanceUnit; onChange: (p: SetPatch) => void; onMenu: () => void }) {
+/** One weight-drop inside a drop set. Values are stored in the parent set's unit. */
+function DropRow({ drop, unit, displayUnit, label, onChange, onRemove }: { drop: Drop; unit: Unit; displayUnit: Unit; label: string; onChange: (d: Drop) => void; onRemove: () => void }) {
+  const shown = convert(drop.weight, unit, displayUnit)
+  const w = useLocalField(shown ? formatWeight(shown) : '', (s) => onChange({ ...drop, weight: Math.max(0, convert(parseFloat(s.replace(',', '.')) || 0, displayUnit, unit)) }))
+  const r = useLocalField(drop.reps ? String(drop.reps) : '', (s) => onChange({ ...drop, reps: Math.max(0, parseInt(s, 10) || 0) }))
+  const small = 'h-9 w-full rounded-lg bg-surface-2 border border-border/60 text-center text-[15px] font-semibold tabular outline-none focus:border-accent/70 placeholder:text-faint placeholder:font-normal'
+  return (
+    <div className="grid grid-cols-[16px_1fr_1fr_36px] gap-2 items-center">
+      <span className="text-faint text-[13px]">↓</span>
+      <input className={small} inputMode="decimal" placeholder="0" value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`${label} weight`} />
+      <input className={small} inputMode="numeric" placeholder="0" value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`${label} reps`} />
+      <button type="button" aria-label={`Remove ${label}`} onClick={() => { tap(); onRemove() }} className="h-9 w-9 flex items-center justify-center text-faint active:text-danger"><Icon.X /></button>
+    </div>
+  )
+}
+
+function CardioRow({ set, label, distanceUnit, incline, onChange, onMenu }: { set: SetDetail; label: string; distanceUnit: DistanceUnit; incline: boolean; onChange: (p: SetPatch) => void; onMenu: () => void }) {
+  const inc = useLocalField(set.incline ? formatDistance(set.incline) : '', (s) => {
+    const n = parseFloat(s.replace(',', '.'))
+    onChange({ incline: Number.isFinite(n) && n > 0 ? n : null })
+  })
   const t = useLocalField(set.duration_seconds ? formatDuration(set.duration_seconds) : '', (s) => onChange({ duration_seconds: parseDuration(s) }))
   const displayDist = set.distance == null ? null : convertDistance(set.distance, set.distance_unit ?? distanceUnit, distanceUnit)
   const d = useLocalField(displayDist ? formatDistance(displayDist) : '', (s) => {
@@ -328,10 +422,11 @@ function CardioRow({ set, label, distanceUnit, onChange, onMenu }: { set: SetDet
     onChange({ distance: Number.isFinite(n) && n > 0 ? n : null, distance_unit: distanceUnit })
   })
   return (
-    <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center">
+    <div className={`grid ${incline ? 'grid-cols-[40px_1fr_1fr_0.8fr_44px]' : 'grid-cols-[40px_1fr_1fr_44px]'} gap-2 items-center`}>
       <Badge label={label} type={set.set_type} isPr={false} onClick={onMenu} />
       <input className={inputClass} inputMode="numeric" placeholder="mm:ss" value={t.v} onFocus={(e) => e.target.select()} onBlur={t.flush} onChange={(e) => t.onChange(e.target.value.replace(/[^\d:hms]/gi, ''))} aria-label={`Interval ${label} time`} />
       <input className={inputClass} inputMode="decimal" placeholder="0" value={d.v} onFocus={(e) => e.target.select()} onBlur={d.flush} onChange={(e) => d.onChange(e.target.value)} aria-label={`Interval ${label} distance`} />
+      {incline && <input className={inputClass} inputMode="decimal" placeholder="0" value={inc.v} onFocus={(e) => e.target.select()} onBlur={inc.flush} onChange={(e) => inc.onChange(e.target.value)} aria-label={`Interval ${label} incline`} />}
       <button type="button" aria-label="Interval options" onClick={() => { tap(); onMenu() }} className="h-11 w-11 flex items-center justify-center text-faint active:text-text">
         <Icon.More />
       </button>

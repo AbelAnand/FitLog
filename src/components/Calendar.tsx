@@ -5,12 +5,14 @@ export function Calendar({
   month,
   onMonthChange,
   trainedDates,
+  plannedDates = new Set<string>(),
   selected,
   onSelect,
 }: {
   month: Date
   onMonthChange: (m: Date) => void
   trainedDates: Set<string>
+  plannedDates?: Set<string>
   selected: Date | null
   onSelect: (d: Date) => void
 }) {
@@ -18,7 +20,6 @@ export function Calendar({
     start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
     end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
   })
-  const now = new Date()
   return (
     <div className="bg-surface rounded-[22px] border border-border/60 p-4">
       <div className="flex items-center justify-between mb-3">
@@ -30,7 +31,6 @@ export function Calendar({
           type="button"
           aria-label="Next month"
           className="h-10 w-10 -mr-2 flex items-center justify-center text-muted disabled:opacity-30"
-          disabled={isSameMonth(month, now) || month > now}
           onClick={() => onMonthChange(addMonths(month, 1))}
         >
           <Icon.ChevronRight />
@@ -45,6 +45,7 @@ export function Calendar({
         {days.map((d) => {
           const inMonth = isSameMonth(d, month)
           const trained = trainedDates.has(format(d, 'yyyy-MM-dd'))
+          const plannedDay = !trained && plannedDates.has(format(d, 'yyyy-MM-dd'))
           const isSel = selected ? isSameDay(d, selected) : false
           return (
             <button
@@ -52,12 +53,12 @@ export function Calendar({
               type="button"
               onClick={() => onSelect(d)}
               className="flex flex-col items-center justify-center h-11"
-              aria-label={format(d, 'PPP') + (trained ? ', trained' : '')}
+              aria-label={format(d, 'PPP') + (trained ? ', trained' : plannedDay ? ', planned' : '')}
             >
               <div
                 className={`h-8 w-8 rounded-full flex items-center justify-center text-[14px] tabular ${
-                  trained ? 'bg-accent text-accent-ink font-semibold' : inMonth ? 'text-text' : 'text-faint'
-                } ${isSel ? 'ring-2 ring-text' : isToday(d) && !trained ? 'ring-1 ring-accent/70' : ''}`}
+                  trained ? 'bg-accent text-accent-ink font-semibold' : plannedDay ? 'border border-dashed border-accent/80 text-text' : inMonth ? 'text-text' : 'text-faint'
+                } ${isSel ? 'ring-2 ring-text' : isToday(d) && !trained && !plannedDay ? 'ring-1 ring-accent/70' : ''}`}
               >
                 {d.getDate()}
               </div>

@@ -235,5 +235,8 @@ export const Icon = {
   Run: () => <svg {...ico} aria-hidden="true"><circle cx="15" cy="4" r="2" /><path d="m9 20 2-6-3-3 4-4 3 3h4" /><path d="m6 12 3-3M13 14l3 6" /></svg>,
   Rows: () => <svg {...ico} aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5" /><rect x="3" y="15" width="18" height="5" rx="1.5" /></svg>,
   Sparkle: () => <svg {...ico} aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" /></svg>,
+  Play: () => <svg {...ico} aria-hidden="true"><path d="M7 4v16l13-8z" /></svg>,
+  Pause: () => <svg {...ico} aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>,
+  CalendarPlus: () => <svg {...ico} aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5" /></svg>,
   Share: () => <svg {...ico} aria-hidden="true"><path d="M12 3v13M7 8l5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>,
 }

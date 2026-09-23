@@ -1,4 +1,4 @@
-import type { ExerciseKind, SetType } from '../api/types'
+import type { Drop, ExerciseKind, SetType } from '../api/types'
 import { toKg, toKm, type DistanceUnit, type Unit } from './units'
 
 /** A single logged set, flattened with its workout and exercise context. */
@@ -12,6 +12,8 @@ export interface SetRow {
   duration_seconds: number | null
   distance: number | null
   distance_unit: DistanceUnit | null
+  drops: Drop[]
+  incline: number | null
   created_at: string
   workout_exercise_id: string
   exercise_id: string
@@ -59,6 +61,7 @@ export function sessionsFor(rows: SetRow[], exerciseId: string): Session[] {
     if (!counts(r)) continue
     const kg = toKg(r.weight, r.unit)
     s.volumeKg += kg * r.reps
+    for (const d of r.drops) s.volumeKg += toKg(d.weight, r.unit) * d.reps
     if (kg > s.topKg || (kg === s.topKg && r.reps > s.topReps)) {
       s.topKg = kg
       s.topReps = r.reps

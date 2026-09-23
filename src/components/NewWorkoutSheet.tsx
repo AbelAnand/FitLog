@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { addDays, format } from 'date-fns'
 import { useCreateWorkout } from '../api/mutations'
 import { useWorkouts } from '../api/queries'
 import { isNative } from '../lib/native'
 import { loadReminderSettings, startGymSession } from '../lib/notifications'
-import { Button, Chip, Icon, Sheet, TextInput, Toggle } from './ui'
+import { Button, Chip, Icon, Segmented, Sheet, TextInput, Toggle } from './ui'
 
 const DEFAULT_TITLES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Cardio']
 
-export function NewWorkoutSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: boolean; onClose: () => void; initialMode?: 'now' | 'plan' }) {
   const [title, setTitle] = useState('')
+  const [mode, setMode] = useState<'now' | 'plan'>(initialMode)
+  const [planDate, setPlanDate] = useState(() => format(addDays(new Date(), 1), 'yyyy-MM-dd'))
   const [gym, setGym] = useState(false)
   const [gymAvailable, setGymAvailable] = useState(false)
   const { data: workouts = [] } = useWorkouts()
@@ -18,26 +21,42 @@ export function NewWorkoutSheet({ open, onClose }: { open: boolean; onClose: () 
 
   useEffect(() => {
     if (!open) return
+    setMode(initialMode)
     loadReminderSettings().then((s) => {
       setGymAvailable(isNative && s.gymEnabled)
       setGym(isNative && s.gymEnabled)
     })
-  }, [open])
+  }, [open, initialMode])
 
-  const recent = Array.from(new Set(workouts.map((w) => w.title.trim()).filter(Boolean)))
+  const recent = Array.from(new Set(workouts.filter((w) => !w.is_plan).map((w) => w.title.trim()).filter(Boolean)))
   const suggestions = Array.from(new Set([...recent, ...DEFAULT_TITLES])).slice(0, 9)
 
   const start = async (t: string) => {
     const clean = t.trim() || 'Workout'
-    const id = await create.mutateAsync({ title: clean })
-    if (gym && gymAvailable) startGymSession(id, clean)
+    const plan = mode === 'plan'
+    const id = await create.mutateAsync({ title: clean, is_plan: plan, date: plan ? planDate : undefined })
+    if (!plan && gym && gymAvailable) startGymSession(id, clean)
     setTitle('')
     onClose()
     nav(`/workout/${id}`)
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="Start a workout">
+    <Sheet open={open} onClose={onClose} title={mode === 'plan' ? 'Plan a workout' : 'Start a workout'}>
+      <div className="mb-4">
+        <Segmented value={mode} options={[{ value: 'now', label: 'Start now' }, { value: 'plan', label: 'Plan for later' }]} onChange={setMode} />
+      </div>
+
+      {mode === 'plan' && (
+        <label className="flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3 mb-4">
+          <span className="flex items-center gap-3">
+            <span className="text-muted"><Icon.CalendarPlus /></span>
+            <span className="text-[15px] font-medium">Planned for</span>
+          </span>
+          <input type="date" value={planDate} min={format(new Date(), 'yyyy-MM-dd')} onChange={(e) => e.target.value && setPlanDate(e.target.value)} className="bg-transparent text-[15px] outline-none text-right" aria-label="Plan date" />
+        </label>
+      )}
+
       <div className="flex flex-wrap gap-2 mb-4">
         {suggestions.map((t) => (
           <Chip key={t} onClick={() => start(t)}>{t}</Chip>
@@ -46,10 +65,10 @@ export function NewWorkoutSheet({ open, onClose }: { open: boolean; onClose: () 
       <div className="flex gap-2">
         <TextInput placeholder="Custom title…" value={title} onChange={(e) => setTitle(e.target.value)} enterKeyHint="go" onKeyDown={(e) => e.key === 'Enter' && title.trim() && start(title)} />
         <Button onClick={() => start(title)} disabled={create.isPending} className="shrink-0">
-          Start
+          {mode === 'plan' ? 'Plan' : 'Start'}
         </Button>
       </div>
-      {gymAvailable && (
+      {mode === 'now' && gymAvailable && (
         <div className="mt-4 flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3">
           <div className="flex items-center gap-3">
             <span className="text-muted"><Icon.Bell /></span>
@@ -61,6 +80,7 @@ export function NewWorkoutSheet({ open, onClose }: { open: boolean; onClose: () 
           <Toggle checked={gym} onChange={setGym} label="Gym reminders" />
         </div>
       )}
+      {mode === 'plan' && <p className="mt-4 text-[12px] text-muted">Add the exercises and target sets next. On the day, tap Start and check them off as you go.</p>}
     </Sheet>
   )
 }

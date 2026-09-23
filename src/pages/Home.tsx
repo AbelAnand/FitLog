@@ -18,6 +18,7 @@ export function HomePage() {
   const qc = useQueryClient()
   const [params, setParams] = useSearchParams()
   const [sheet, setSheet] = useState(false)
+  const [sheetMode, setSheetMode] = useState<'now' | 'plan'>('now')
 
   // Widget deep link (fitlog://start) and notification taps land on /?start=1.
   useEffect(() => {
@@ -27,7 +28,8 @@ export function HomePage() {
     }
   }, [params, setParams])
 
-  const nonEmpty = useMemo(() => (workouts ?? []).filter((w) => w.exerciseNames.length > 0), [workouts])
+  const nonEmpty = useMemo(() => (workouts ?? []).filter((w) => w.exerciseNames.length > 0 && !w.is_plan), [workouts])
+  const plans = useMemo(() => (workouts ?? []).filter((w) => w.is_plan && w.exerciseNames.length > 0).sort((a, b) => a.date.localeCompare(b.date)), [workouts])
   const streak = useMemo(() => computeStreak(nonEmpty.map((w) => w.date), profile?.weekly_goal ?? 4), [nonEmpty, profile])
 
   // Housekeeping: drop abandoned empty workouts, refresh reminders and the home-screen widget.
@@ -61,9 +63,25 @@ export function HomePage() {
         <>
           <StreakCard info={streak} />
 
-          <Button size="lg" className="w-full mt-4" onClick={() => setSheet(true)}>
-            <Icon.Plus /> Start workout
-          </Button>
+          <div className="grid grid-cols-[1fr_auto] gap-2 mt-4">
+            <Button size="lg" onClick={() => { setSheetMode('now'); setSheet(true) }}>
+              <Icon.Plus /> Start workout
+            </Button>
+            <Button size="lg" variant="secondary" aria-label="Plan a workout" onClick={() => { setSheetMode('plan'); setSheet(true) }}>
+              <Icon.CalendarPlus />
+            </Button>
+          </div>
+
+          {plans.length > 0 && (
+            <>
+              <h2 className="text-[17px] font-semibold mt-8 mb-3">Planned</h2>
+              <div className="flex flex-col gap-2">
+                {plans.slice(0, 4).map((w) => (
+                  <WorkoutRow key={w.id} w={w} />
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="flex items-baseline justify-between mt-8 mb-3">
             <h2 className="text-[17px] font-semibold">Recent</h2>
@@ -83,7 +101,7 @@ export function HomePage() {
         </>
       )}
 
-      <NewWorkoutSheet open={sheet} onClose={() => setSheet(false)} />
+      <NewWorkoutSheet open={sheet} onClose={() => setSheet(false)} initialMode={sheetMode} />
     </>
   )
 }

@@ -7,18 +7,20 @@ import { WorkoutRow } from '../components/WorkoutRow'
 
 export function HistoryPage() {
   const { data: all = [], isLoading } = useWorkouts()
-  const workouts = useMemo(() => all.filter((w) => w.exerciseNames.length > 0), [all])
+  const workouts = useMemo(() => all.filter((w) => w.exerciseNames.length > 0 && !w.is_plan), [all])
+  const plans = useMemo(() => all.filter((w) => w.is_plan && w.exerciseNames.length > 0), [all])
   const [month, setMonth] = useState(() => new Date())
   const [selected, setSelected] = useState<Date | null>(null)
 
   const trained = useMemo(() => new Set(workouts.map((w) => w.date)), [workouts])
+  const planned = useMemo(() => new Set(plans.map((w) => w.date)), [plans])
   const list = useMemo(() => {
     if (selected) {
       const key = format(selected, 'yyyy-MM-dd')
-      return workouts.filter((w) => w.date === key)
+      return [...plans.filter((w) => w.date === key), ...workouts.filter((w) => w.date === key)]
     }
-    return workouts.filter((w) => isSameMonth(parseISO(w.date), month))
-  }, [workouts, selected, month])
+    return [...plans.filter((w) => isSameMonth(parseISO(w.date), month)).sort((a, b) => a.date.localeCompare(b.date)), ...workouts.filter((w) => isSameMonth(parseISO(w.date), month))]
+  }, [workouts, plans, selected, month])
 
   const heading = selected ? format(selected, 'EEEE, MMM d') : `${format(month, 'MMMM')} · ${list.length} ${list.length === 1 ? 'workout' : 'workouts'}`
 
@@ -33,6 +35,7 @@ export function HistoryPage() {
             month={month}
             onMonthChange={(m) => { setMonth(m); setSelected(null) }}
             trainedDates={trained}
+            plannedDates={planned}
             selected={selected}
             onSelect={(d) => setSelected((s) => (s && format(s, 'yyyy-MM-dd') === format(d, 'yyyy-MM-dd') ? null : d))}
           />

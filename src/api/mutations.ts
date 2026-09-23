@@ -5,7 +5,16 @@ import { useUserId } from '../lib/auth'
 import type { DistanceUnit, Unit } from '../lib/units'
 import { keys } from './keys'
 import { fetchWorkout } from './queries'
-import type { ExerciseKind, Profile, SetDetail, SetPatch, WorkoutDetail } from './types'
+import type { Json } from '../lib/database.types'
+import type { Drop, ExerciseKind, Profile, SetDetail, SetPatch, WorkoutDetail } from './types'
+
+/** Postgres jsonb wants plain JSON; drops are simple objects so a cast is safe. */
+const dropsJson = (drops: Drop[] | undefined): Json => (drops ?? []).map((d) => ({ weight: d.weight, reps: d.reps }))
+
+function setPatchForDb(patch: SetPatch) {
+  const { drops, ...rest } = patch
+  return drops === undefined ? rest : { ...rest, drops: dropsJson(drops) }
+}
 
 export function invalidateAll(qc: QueryClient, workoutId?: string) {
   qc.invalidateQueries({ queryKey: keys.workouts })
@@ -48,10 +57,10 @@ export function useCreateWorkout() {
   const userId = useUserId()
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: async (input: { title: string; date?: string }) => {
+    mutationFn: async (input: { title: string; date?: string; is_plan?: boolean }) => {
       const { data, error } = await supabase
         .from('workouts')
-        .insert({ user_id: userId, title: input.title, date: input.date ?? format(new Date(), 'yyyy-MM-dd') })
+        .insert({ user_id: userId, title: input.title, date: input.date ?? format(new Date(), 'yyyy-MM-dd'), is_plan: input.is_plan ?? false })
         .select('id')
         .single()
       if (error) throw error
@@ -65,7 +74,7 @@ export function useUpdateWorkout(workoutId: string) {
   const qc = useQueryClient()
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: async (patch: Partial<Pick<WorkoutDetail, 'title' | 'date' | 'notes' | 'finished_at'>>) => {
+    mutationFn: async (patch: Partial<Pick<WorkoutDetail, 'title' | 'date' | 'notes' | 'finished_at' | 'paused_at' | 'paused_seconds' | 'is_plan' | 'started_at'>>) => {
       const { error } = await supabase.from('workouts').update(patch).eq('id', workoutId)
       if (error) throw error
     },
@@ -108,14 +117,35 @@ export async function deleteEmptyWorkouts(qc: QueryClient, keepId?: string, olde
   invalidateAll(qc)
 }
 
+/* ---------- Session controls ---------- */
+
+/** Pause: remember when. Resume: fold the pause into paused_seconds. Reopen: un-finish and skip the time away. */
+export function useSessionControls(workoutId: string) {
+  const update = useUpdateWorkout(workoutId)
+  const nowIso = () => new Date().toISOString()
+  const secondsSince = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000))
+  return {
+    pause: () => update.mutateAsync({ paused_at: nowIso() }),
+    resume: (w: Pick<WorkoutDetail, 'paused_at' | 'paused_seconds'>) =>
+      update.mutateAsync({ paused_at: null, paused_seconds: w.paused_seconds + (w.paused_at ? secondsSince(w.paused_at) : 0) }),
+    finish: (w: Pick<WorkoutDetail, 'paused_at' | 'paused_seconds'>) =>
+      update.mutateAsync({ finished_at: nowIso(), paused_at: null, paused_seconds: w.paused_seconds + (w.paused_at ? secondsSince(w.paused_at) : 0) }),
+    reopen: (w: Pick<WorkoutDetail, 'finished_at' | 'paused_seconds'>) =>
+      update.mutateAsync({ finished_at: null, paused_at: null, paused_seconds: w.paused_seconds + (w.finished_at ? secondsSince(w.finished_at) : 0) }),
+    /** Turn a plan into a live workout starting now. */
+    startPlan: () => update.mutateAsync({ is_plan: false, started_at: nowIso(), finished_at: null, paused_at: null, paused_seconds: 0, date: format(new Date(), 'yyyy-MM-dd') }),
+    isPending: update.isPending,
+  }
+}
+
 /* ---------- Exercises ---------- */
 
 /** Find the user's exercise by name (case-insensitive) or create it. */
-async function ensureExercise(userId: string, name: string, kind: ExerciseKind): Promise<string> {
+async function ensureExercise(userId: string, name: string, kind: ExerciseKind, trackIncline = false): Promise<string> {
   const clean = name.trim()
   const { data: existing } = await supabase.from('exercises').select('id').ilike('name', clean).maybeSingle()
   if (existing) return existing.id
-  const { data, error } = await supabase.from('exercises').insert({ user_id: userId, name: clean, kind }).select('id').single()
+  const { data, error } = await supabase.from('exercises').insert({ user_id: userId, name: clean, kind, track_incline: kind === 'cardio' && trackIncline }).select('id').single()
   if (error) throw error
   return data.id
 }
@@ -124,8 +154,8 @@ export function useAddExercise(workoutId: string) {
   const userId = useUserId()
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: async (input: { name: string; kind: ExerciseKind; position: number; unit: Unit; distanceUnit: DistanceUnit }) => {
-      const exerciseId = await ensureExercise(userId, input.name, input.kind)
+    mutationFn: async (input: { name: string; kind: ExerciseKind; trackIncline?: boolean; position: number; unit: Unit; distanceUnit: DistanceUnit }) => {
+      const exerciseId = await ensureExercise(userId, input.name, input.kind, input.trackIncline)
       const { data: we, error } = await supabase
         .from('workout_exercises')
         .insert({ user_id: userId, workout_id: workoutId, exercise_id: exerciseId, position: input.position })
@@ -153,17 +183,17 @@ export function useUpdateWorkoutExercise(workoutId: string) {
   const qc = useQueryClient()
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: async (input: { workoutExerciseId: string; notes: string }) => {
-      const { error } = await supabase.from('workout_exercises').update({ notes: input.notes }).eq('id', input.workoutExerciseId)
+    mutationFn: async (input: { workoutExerciseId: string; patch: { notes?: string; completed_at?: string | null } }) => {
+      const { error } = await supabase.from('workout_exercises').update(input.patch).eq('id', input.workoutExerciseId)
       if (error) throw error
     },
-    onMutate: async ({ workoutExerciseId, notes }) => {
+    onMutate: async ({ workoutExerciseId, patch }) => {
       await qc.cancelQueries({ queryKey: keys.workout(workoutId) })
       const prev = qc.getQueryData<WorkoutDetail>(keys.workout(workoutId))
       if (prev) {
         qc.setQueryData<WorkoutDetail>(keys.workout(workoutId), {
           ...prev,
-          exercises: prev.exercises.map((we) => (we.id === workoutExerciseId ? { ...we, notes } : we)),
+          exercises: prev.exercises.map((we) => (we.id === workoutExerciseId ? { ...we, ...patch } : we)),
         })
       }
       return { prev }
@@ -172,6 +202,18 @@ export function useUpdateWorkoutExercise(workoutId: string) {
       if (ctx?.prev) qc.setQueryData(keys.workout(workoutId), ctx.prev)
     },
     onSettled: () => invalidate(workoutId),
+  })
+}
+
+/** Per-exercise settings that live on the exercise itself (e.g. incline tracking). */
+export function useUpdateExercise(workoutId?: string) {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: async (input: { exerciseId: string; patch: { track_incline?: boolean } }) => {
+      const { error } = await supabase.from('exercises').update(input.patch).eq('id', input.exerciseId)
+      if (error) throw error
+    },
+    onSuccess: () => invalidate(workoutId),
   })
 }
 
@@ -197,6 +239,8 @@ export interface NewSet {
   duration_seconds?: number | null
   distance?: number | null
   distance_unit?: DistanceUnit | null
+  drops?: Drop[]
+  incline?: number | null
 }
 
 /** Insert one or many sets for an exercise. */
@@ -218,6 +262,8 @@ export function useAddSets(workoutId: string) {
           duration_seconds: s.duration_seconds ?? null,
           distance: s.distance ?? null,
           distance_unit: s.distance_unit ?? null,
+          drops: dropsJson(s.drops),
+          incline: s.incline ?? null,
         })),
       )
       if (error) throw error
@@ -233,7 +279,7 @@ export function useUpdateSets(workoutId: string) {
     mutationFn: async (input: { updates: { setId: string; patch: SetPatch }[] }) => {
       await Promise.all(
         input.updates.map(async ({ setId, patch }) => {
-          const { error } = await supabase.from('sets').update(patch).eq('id', setId)
+          const { error } = await supabase.from('sets').update(setPatchForDb(patch)).eq('id', setId)
           if (error) throw error
         }),
       )
@@ -310,6 +356,8 @@ export function useReplaceSets(workoutId: string) {
           duration_seconds: s.duration_seconds ?? null,
           distance: s.distance ?? null,
           distance_unit: s.distance_unit ?? null,
+          drops: dropsJson(s.drops),
+          incline: s.incline ?? null,
         })),
       )
       if (error) throw error
@@ -348,6 +396,8 @@ export function useRepeatLast(workoutId: string) {
               duration_seconds: s.duration_seconds,
               distance: s.distance,
               distance_unit: s.distance_unit,
+              drops: dropsJson(s.drops),
+              incline: s.incline,
             })),
           )
           if (setErr) throw setErr

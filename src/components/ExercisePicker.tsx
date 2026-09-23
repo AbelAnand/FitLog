@@ -14,7 +14,7 @@ export function ExercisePicker({
 }: {
   open: boolean
   onClose: () => void
-  onPick: (name: string, kind: ExerciseKind, id?: string) => void
+  onPick: (name: string, kind: ExerciseKind, id?: string, trackIncline?: boolean) => void
   /** Used to rank suggestions, e.g. "Legs" puts squats first. */
   workoutTitle?: string
   historyOnly?: boolean
@@ -68,8 +68,8 @@ export function ExercisePicker({
     setQ('')
     onClose()
   }
-  const pick = (name: string, kind: ExerciseKind, id?: string) => {
-    onPick(name, kind, id)
+  const pick = (name: string, kind: ExerciseKind, id?: string, trackIncline?: boolean) => {
+    onPick(name, kind, id, trackIncline)
     close()
   }
 
@@ -109,7 +109,7 @@ export function ExercisePicker({
             <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} />
           ))}
           {model.suggestedStarters.map((s) => (
-            <Row key={s.name} name={s.name} kind={s.kind} sub={GROUP_LABELS[s.group]} onClick={() => pick(s.name, s.kind)} />
+            <Row key={s.name} name={s.name} kind={s.kind} sub={GROUP_LABELS[s.group]} onClick={() => pick(s.name, s.kind, undefined, s.trackIncline)} />
           ))}
         </Section>
       )}
@@ -128,7 +128,7 @@ export function ExercisePicker({
         return (
           <Section key={g} label={GROUP_LABELS[g]}>
             {list.map((s) => (
-              <Row key={s.name} name={s.name} kind={s.kind} onClick={() => pick(s.name, s.kind)} />
+              <Row key={s.name} name={s.name} kind={s.kind} onClick={() => pick(s.name, s.kind, undefined, s.trackIncline)} />
             ))}
           </Section>
         )

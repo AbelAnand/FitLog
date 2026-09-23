@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import type { DistanceUnit, Unit } from '../lib/units'
 import type { SetRow } from '../lib/prs'
 import { keys } from './keys'
-import type { Exercise, ExerciseKind, Profile, SetType, WorkoutDetail, WorkoutSummary } from './types'
+import type { Drop, Exercise, ExerciseKind, Profile, SetType, WorkoutDetail, WorkoutSummary } from './types'
 
 export function useProfile() {
   return useQuery({
@@ -23,7 +23,7 @@ export function useWorkouts() {
     queryFn: async (): Promise<WorkoutSummary[]> => {
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, title, date, notes, created_at, started_at, finished_at, workout_exercises(position, exercises(name), sets(id))')
+        .select('id, title, date, notes, created_at, started_at, finished_at, paused_at, paused_seconds, is_plan, workout_exercises(position, completed_at, exercises(name), sets(id))')
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -37,20 +37,31 @@ export function useWorkouts() {
           created_at: w.created_at,
           started_at: w.started_at,
           finished_at: w.finished_at,
+          paused_at: w.paused_at,
+          paused_seconds: w.paused_seconds,
+          is_plan: w.is_plan,
           exerciseNames: wes.map((we) => we.exercises?.name ?? '').filter(Boolean),
           setCount: wes.reduce((n, we) => n + we.sets.length, 0),
+          completedCount: wes.filter((we) => we.completed_at).length,
         }
       })
     },
   })
 }
 
-const SET_COLS = 'id, set_number, set_type, weight, unit, reps, duration_seconds, distance, distance_unit, created_at'
+const SET_COLS = 'id, set_number, set_type, weight, unit, reps, duration_seconds, distance, distance_unit, drops, incline, created_at'
+
+function parseDrops(raw: unknown): Drop[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((d): d is { weight?: unknown; reps?: unknown } => !!d && typeof d === 'object')
+    .map((d) => ({ weight: Number(d.weight) || 0, reps: Number(d.reps) || 0 }))
+}
 
 export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
   const { data, error } = await supabase
     .from('workouts')
-    .select(`id, title, date, notes, created_at, started_at, finished_at, workout_exercises(id, exercise_id, position, notes, exercises(name, kind), sets(${SET_COLS}))`)
+    .select(`id, title, date, notes, created_at, started_at, finished_at, paused_at, paused_seconds, is_plan, workout_exercises(id, exercise_id, position, notes, completed_at, exercises(name, kind, track_incline), sets(${SET_COLS}))`)
     .eq('id', id)
     .single()
   if (error) throw error
@@ -62,6 +73,9 @@ export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
     created_at: data.created_at,
     started_at: data.started_at,
     finished_at: data.finished_at,
+    paused_at: data.paused_at,
+    paused_seconds: data.paused_seconds,
+    is_plan: data.is_plan,
     exercises: [...data.workout_exercises]
       .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
       .map((we) => ({
@@ -69,8 +83,10 @@ export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
         exercise_id: we.exercise_id,
         name: we.exercises?.name ?? '',
         kind: (we.exercises?.kind ?? 'strength') as ExerciseKind,
+        track_incline: we.exercises?.track_incline ?? false,
         position: we.position,
         notes: we.notes,
+        completed_at: we.completed_at,
         sets: [...we.sets]
           .sort((a, b) => a.set_number - b.set_number || a.created_at.localeCompare(b.created_at))
           .map((s) => ({
@@ -80,6 +96,8 @@ export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
             set_type: s.set_type as SetType,
             distance: s.distance == null ? null : Number(s.distance),
             distance_unit: s.distance_unit as DistanceUnit | null,
+            drops: parseDrops(s.drops),
+            incline: s.incline == null ? null : Number(s.incline),
           })),
       })),
   }
@@ -100,7 +118,8 @@ export function useAllSets() {
     queryFn: async (): Promise<SetRow[]> => {
       const { data, error } = await supabase
         .from('sets')
-        .select(`${SET_COLS}, workout_exercise_id, workout_exercises!inner(exercise_id, workout_id, exercises!inner(name, kind), workouts!inner(title, date))`)
+        .select(`${SET_COLS}, workout_exercise_id, workout_exercises!inner(exercise_id, workout_id, exercises!inner(name, kind), workouts!inner(title, date, is_plan))`)
+        .eq('workout_exercises.workouts.is_plan', false)
       if (error) throw error
       return data.map((s) => ({
         id: s.id,
@@ -112,6 +131,8 @@ export function useAllSets() {
         duration_seconds: s.duration_seconds,
         distance: s.distance == null ? null : Number(s.distance),
         distance_unit: s.distance_unit as DistanceUnit | null,
+        drops: parseDrops(s.drops),
+        incline: s.incline == null ? null : Number(s.incline),
         created_at: s.created_at,
         workout_exercise_id: s.workout_exercise_id,
         exercise_id: s.workout_exercises.exercise_id,
@@ -131,12 +152,12 @@ export function useExercises() {
     queryFn: async (): Promise<Exercise[]> => {
       const { data, error } = await supabase
         .from('exercises')
-        .select('id, name, kind, workout_exercises(workouts(date))')
+        .select('id, name, kind, track_incline, workout_exercises(workouts(date, is_plan))')
         .order('name')
       if (error) throw error
       return data.map((e) => {
-        const dates = e.workout_exercises.map((we) => we.workouts?.date ?? '').filter(Boolean)
-        return { id: e.id, name: e.name, kind: e.kind as ExerciseKind, lastUsed: dates.length ? dates.sort().at(-1) : undefined }
+        const dates = e.workout_exercises.filter((we) => we.workouts && !we.workouts.is_plan).map((we) => we.workouts?.date ?? '').filter(Boolean)
+        return { id: e.id, name: e.name, kind: e.kind as ExerciseKind, track_incline: e.track_incline, lastUsed: dates.length ? dates.sort().at(-1) : undefined }
       })
     },
   })

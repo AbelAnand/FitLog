@@ -6,6 +6,8 @@ export interface StarterExercise {
   name: string
   group: MuscleGroup
   kind: ExerciseKind
+  /** Cardio machines/activities where incline matters get an incline column by default. */
+  trackIncline?: boolean
 }
 
 const s = (group: MuscleGroup, names: string[]): StarterExercise[] => names.map((name) => ({ name, group, kind: 'strength' }))
@@ -21,7 +23,20 @@ export const STARTER_EXERCISES: StarterExercise[] = [
   ...s('glutes', ['Hip Thrust', 'Glute Bridge', 'Cable Kickback', 'Hip Abduction', 'Hip Adduction']),
   ...s('core', ['Plank', 'Hanging Leg Raise', 'Cable Crunch', 'Ab Wheel Rollout', 'Russian Twist', 'Sit-Up', 'Dead Bug', 'Side Plank']),
   ...s('other', ["Farmer's Carry", 'Kettlebell Swing', 'Clean and Press', 'Power Clean', 'Sled Push']),
-  ...['Running', 'Treadmill', 'Walking', 'Incline Walk', 'Cycling', 'Stationary Bike', 'Rowing', 'Elliptical', 'Stair Climber', 'Swimming', 'Jump Rope', 'HIIT', 'Hiking'].map((name) => ({ name, group: 'cardio' as const, kind: 'cardio' as const })),
+  ...[
+    { name: 'Treadmill', trackIncline: true },
+    { name: 'Running' },
+    { name: 'Walking', trackIncline: true },
+    { name: 'Hiking', trackIncline: true },
+    { name: 'Stair Climber', trackIncline: true },
+    { name: 'Elliptical', trackIncline: true },
+    { name: 'Cycling' },
+    { name: 'Stationary Bike' },
+    { name: 'Rowing' },
+    { name: 'Swimming' },
+    { name: 'Jump Rope' },
+    { name: 'HIIT' },
+  ].map((c) => ({ ...c, group: 'cardio' as const, kind: 'cardio' as const })),
 ]
 
 export const GROUP_LABELS: Record<MuscleGroup, string> = {

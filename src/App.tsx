@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useNavigate } from 'react-router'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useNavigate, useParams } from 'react-router'
 import { AuthProvider, useAuth } from './lib/auth'
 import { TabBar } from './components/TabBar'
 import { Spinner } from './components/ui'
@@ -40,6 +40,12 @@ function NativeRouting() {
     }
   }, [nav])
   return null
+}
+
+/** Remount the editor per workout so its local title/notes state never carries over. */
+function WorkoutRoute() {
+  const { id } = useParams()
+  return <WorkoutPage key={id} />
 }
 
 function Protected() {
@@ -86,7 +92,7 @@ export default function App() {
                 <Route path="/progress" element={<Suspense fallback={<Spinner className="pt-32" />}><ProgressPage /></Suspense>} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
-              <Route path="/workout/:id" element={<WorkoutPage />} />
+              <Route path="/workout/:id" element={<WorkoutRoute />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
