@@ -154,11 +154,11 @@ export function useAddExercise(workoutId: string) {
   const userId = useUserId()
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: async (input: { name: string; kind: ExerciseKind; trackIncline?: boolean; position: number; unit: Unit; distanceUnit: DistanceUnit }) => {
+    mutationFn: async (input: { name: string; kind: ExerciseKind; trackIncline?: boolean; position: number; unit: Unit; distanceUnit: DistanceUnit; planned?: boolean }) => {
       const exerciseId = await ensureExercise(userId, input.name, input.kind, input.trackIncline)
       const { data: we, error } = await supabase
         .from('workout_exercises')
-        .insert({ user_id: userId, workout_id: workoutId, exercise_id: exerciseId, position: input.position })
+        .insert({ user_id: userId, workout_id: workoutId, exercise_id: exerciseId, position: input.position, planned: input.planned ?? false })
         .select('id')
         .single()
       if (error) throw error
@@ -374,12 +374,12 @@ export function useRepeatLast(workoutId: string) {
   const userId = useUserId()
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: async (sourceWorkoutId: string) => {
-      const source = await fetchWorkout(sourceWorkoutId)
+    mutationFn: async (input: { sourceWorkoutId: string; planned?: boolean }) => {
+      const source = await fetchWorkout(input.sourceWorkoutId)
       for (const we of source.exercises) {
         const { data: newWe, error } = await supabase
           .from('workout_exercises')
-          .insert({ user_id: userId, workout_id: workoutId, exercise_id: we.exercise_id, position: we.position })
+          .insert({ user_id: userId, workout_id: workoutId, exercise_id: we.exercise_id, position: we.position, planned: input.planned ?? false })
           .select('id')
           .single()
         if (error) throw error

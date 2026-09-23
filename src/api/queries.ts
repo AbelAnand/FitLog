@@ -23,7 +23,7 @@ export function useWorkouts() {
     queryFn: async (): Promise<WorkoutSummary[]> => {
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, title, date, notes, created_at, started_at, finished_at, paused_at, paused_seconds, is_plan, workout_exercises(position, completed_at, exercises(name), sets(id))')
+        .select('id, title, date, notes, created_at, started_at, finished_at, paused_at, paused_seconds, is_plan, workout_exercises(position, completed_at, planned, exercises(name), sets(id))')
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -42,7 +42,8 @@ export function useWorkouts() {
           is_plan: w.is_plan,
           exerciseNames: wes.map((we) => we.exercises?.name ?? '').filter(Boolean),
           setCount: wes.reduce((n, we) => n + we.sets.length, 0),
-          completedCount: wes.filter((we) => we.completed_at).length,
+          plannedCount: wes.filter((we) => we.planned).length,
+          completedCount: wes.filter((we) => we.planned && we.completed_at).length,
         }
       })
     },
@@ -61,7 +62,7 @@ function parseDrops(raw: unknown): Drop[] {
 export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
   const { data, error } = await supabase
     .from('workouts')
-    .select(`id, title, date, notes, created_at, started_at, finished_at, paused_at, paused_seconds, is_plan, workout_exercises(id, exercise_id, position, notes, completed_at, exercises(name, kind, track_incline), sets(${SET_COLS}))`)
+    .select(`id, title, date, notes, created_at, started_at, finished_at, paused_at, paused_seconds, is_plan, workout_exercises(id, exercise_id, position, notes, completed_at, planned, exercises(name, kind, track_incline), sets(${SET_COLS}))`)
     .eq('id', id)
     .single()
   if (error) throw error
@@ -86,6 +87,7 @@ export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
         track_incline: we.exercises?.track_incline ?? false,
         position: we.position,
         notes: we.notes,
+        planned: we.planned,
         completed_at: we.completed_at,
         sets: [...we.sets]
           .sort((a, b) => a.set_number - b.set_number || a.created_at.localeCompare(b.created_at))

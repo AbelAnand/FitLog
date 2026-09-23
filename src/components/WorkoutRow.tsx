@@ -55,7 +55,7 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
           ) : (
             <div className="text-[12px] text-faint shrink-0 text-right leading-tight">
               <div>{w.setCount} sets</div>
-              {live ? <div className="text-accent font-medium">In progress</div> : length ? <div>{length}</div> : w.completedCount > 0 ? <div>{w.completedCount}/{w.exerciseNames.length} done</div> : null}
+              {live ? <div className="text-accent font-medium">In progress</div> : length ? <div>{length}</div> : w.plannedCount > 0 ? <div>{w.completedCount}/{w.plannedCount} planned done</div> : null}
             </div>
           )}
         </button>

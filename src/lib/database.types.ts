@@ -25,9 +25,9 @@ export type Database = {
         ]
       }
       workout_exercises: {
-        Row: { created_at: string; exercise_id: string; id: string; notes: string; position: number; user_id: string; workout_id: string; completed_at: string | null }
-        Insert: { created_at?: string; exercise_id: string; id?: string; notes?: string; position?: number; user_id: string; workout_id: string; completed_at?: string | null }
-        Update: { created_at?: string; exercise_id?: string; id?: string; notes?: string; position?: number; user_id?: string; workout_id?: string; completed_at?: string | null }
+        Row: { created_at: string; exercise_id: string; id: string; notes: string; position: number; user_id: string; workout_id: string; completed_at: string | null; planned: boolean }
+        Insert: { created_at?: string; exercise_id: string; id?: string; notes?: string; position?: number; user_id: string; workout_id: string; completed_at?: string | null; planned?: boolean }
+        Update: { created_at?: string; exercise_id?: string; id?: string; notes?: string; position?: number; user_id?: string; workout_id?: string; completed_at?: string | null; planned?: boolean }
         Relationships: [
           { foreignKeyName: 'workout_exercises_exercise_id_fkey'; columns: ['exercise_id']; isOneToOne: false; referencedRelation: 'exercises'; referencedColumns: ['id'] },
           { foreignKeyName: 'workout_exercises_workout_id_fkey'; columns: ['workout_id']; isOneToOne: false; referencedRelation: 'workouts'; referencedColumns: ['id'] },

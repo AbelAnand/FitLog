@@ -26,6 +26,7 @@ export interface WorkoutSummary extends SessionTiming {
   is_plan: boolean
   exerciseNames: string[]
   setCount: number
+  plannedCount: number
   completedCount: number
 }
 
@@ -58,6 +59,8 @@ export interface WorkoutExerciseDetail {
   track_incline: boolean
   position: number
   notes: string
+  /** Was part of the plan this workout started from. */
+  planned: boolean
   completed_at: string | null
   sets: SetDetail[]
 }

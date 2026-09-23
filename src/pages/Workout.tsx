@@ -118,7 +118,8 @@ export function WorkoutPage() {
   const saving = updateWorkout.isPending || updateSets.isPending || addSets.isPending || replaceSets.isPending || updateWorkoutExercise.isPending
   const finished = !!workout.finished_at
   const sessionLength = formatSessionLength(workout)
-  const doneCount = workout.exercises.filter((we) => we.completed_at).length
+  const plannedExercises = workout.exercises.filter((we) => we.planned)
+  const doneCount = plannedExercises.filter((we) => we.completed_at).length
 
   const finish = async () => {
     setSessionSheet(false)
@@ -216,9 +217,9 @@ export function WorkoutPage() {
             <button type="button" onClick={reopen} className="text-muted underline underline-offset-2">Resume</button>
           </span>
         )}
-        {!plan && !finished && workout.exercises.length > 0 && (
-          <span className={`text-[12px] font-medium ${doneCount === workout.exercises.length ? 'text-accent' : 'text-muted'}`}>
-            {doneCount} of {workout.exercises.length} done
+        {!plan && !finished && plannedExercises.length > 0 && (
+          <span className={`text-[12px] font-medium ${doneCount === plannedExercises.length ? 'text-accent' : 'text-muted'}`}>
+            {doneCount} of {plannedExercises.length} planned done
           </span>
         )}
       </div>
@@ -227,7 +228,7 @@ export function WorkoutPage() {
         <button
           type="button"
           disabled={repeatLast.isPending}
-          onClick={() => repeatLast.mutate(previousSameTitle.id)}
+          onClick={() => repeatLast.mutate({ sourceWorkoutId: previousSameTitle.id, planned: plan })}
           className="w-full flex items-center gap-3 rounded-[18px] bg-accent-dim border border-accent/30 p-4 mb-4 text-left active:brightness-110 disabled:opacity-60"
         >
           <span className="text-accent"><Icon.Repeat /></span>
@@ -289,7 +290,7 @@ export function WorkoutPage() {
         open={picker}
         onClose={() => setPicker(false)}
         workoutTitle={title}
-        onPick={(name, kind, _id, trackIncline) => addExercise.mutate({ name, kind, trackIncline, position: workout.exercises.length, unit, distanceUnit })}
+        onPick={(name, kind, _id, trackIncline) => addExercise.mutate({ name, kind, trackIncline, position: workout.exercises.length, unit, distanceUnit, planned: plan })}
       />
 
       <SessionSheet

@@ -58,7 +58,9 @@ export function ExerciseCard({
 }) {
   const cardio = we.kind === 'cardio'
   const incline = cardio && we.track_incline
-  const done = !!we.completed_at
+  // Check-off exists only for exercises that came from a plan, once the workout is live.
+  const checkable = !plan && we.planned
+  const done = checkable && !!we.completed_at
   const [menu, setMenu] = useState(false)
   const [rowMenu, setRowMenu] = useState<SetDetail | null>(null)
   const [quick, setQuick] = useState(false)
@@ -167,7 +169,7 @@ export function ExerciseCard({
   return (
     <div className={`bg-surface rounded-[18px] border ${done ? 'border-accent/40' : 'border-border/60'}`}>
       <div className="flex items-start justify-between pl-3 pr-1 pt-3 pb-1">
-        {!plan && (
+        {checkable && (
           <button
             type="button"
             role="checkbox"
@@ -181,7 +183,7 @@ export function ExerciseCard({
             </span>
           </button>
         )}
-        <div className={`min-w-0 flex-1 ${plan ? 'pl-1' : ''}`}>
+        <div className={`min-w-0 flex-1 ${checkable ? '' : 'pl-1'}`}>
           <div className="flex items-center gap-2">
             <div className={`text-[17px] font-semibold truncate ${done ? 'text-muted' : ''}`}>{we.name}</div>
             {cardio && <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted bg-surface-2 rounded px-1.5 py-0.5">Cardio</span>}
