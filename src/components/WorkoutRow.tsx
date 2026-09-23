@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns'
 import { useDeleteWorkout } from '../api/mutations'
 import type { WorkoutSummary } from '../api/types'
 import { useLongPress } from '../lib/useLongPress'
+import { formatSessionLength, isLiveSession } from '../lib/duration'
 import { Button, Icon, MenuSheet, Sheet } from './ui'
 
 /** A workout in a list. Tap to open, long-press for actions. */
@@ -14,6 +15,8 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
   const del = useDeleteWorkout()
   const press = useLongPress(() => setMenu(true))
   const d = parseISO(w.date)
+  const length = formatSessionLength(w.started_at, w.finished_at)
+  const live = isLiveSession(w)
 
   return (
     <>
@@ -32,7 +35,10 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
           <div className="text-[16px] font-semibold truncate">{w.title || 'Workout'}</div>
           <div className="text-[13px] text-muted truncate">{w.exerciseNames.length ? w.exerciseNames.join(' · ') : 'No exercises'}</div>
         </div>
-        <div className="text-[12px] text-faint shrink-0">{w.setCount} sets</div>
+        <div className="text-[12px] text-faint shrink-0 text-right leading-tight">
+          <div>{w.setCount} sets</div>
+          {live ? <div className="text-accent font-medium">In progress</div> : length ? <div>{length}</div> : null}
+        </div>
       </button>
 
       <MenuSheet

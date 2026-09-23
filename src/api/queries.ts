@@ -23,7 +23,7 @@ export function useWorkouts() {
     queryFn: async (): Promise<WorkoutSummary[]> => {
       const { data, error } = await supabase
         .from('workouts')
-        .select('id, title, date, notes, created_at, finished_at, workout_exercises(position, exercises(name), sets(id))')
+        .select('id, title, date, notes, created_at, started_at, finished_at, workout_exercises(position, exercises(name), sets(id))')
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -35,6 +35,7 @@ export function useWorkouts() {
           date: w.date,
           notes: w.notes,
           created_at: w.created_at,
+          started_at: w.started_at,
           finished_at: w.finished_at,
           exerciseNames: wes.map((we) => we.exercises?.name ?? '').filter(Boolean),
           setCount: wes.reduce((n, we) => n + we.sets.length, 0),
@@ -49,7 +50,7 @@ const SET_COLS = 'id, set_number, set_type, weight, unit, reps, duration_seconds
 export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
   const { data, error } = await supabase
     .from('workouts')
-    .select(`id, title, date, notes, created_at, finished_at, workout_exercises(id, exercise_id, position, notes, exercises(name, kind), sets(${SET_COLS}))`)
+    .select(`id, title, date, notes, created_at, started_at, finished_at, workout_exercises(id, exercise_id, position, notes, exercises(name, kind), sets(${SET_COLS}))`)
     .eq('id', id)
     .single()
   if (error) throw error
@@ -59,6 +60,7 @@ export async function fetchWorkout(id: string): Promise<WorkoutDetail> {
     date: data.date,
     notes: data.notes,
     created_at: data.created_at,
+    started_at: data.started_at,
     finished_at: data.finished_at,
     exercises: [...data.workout_exercises]
       .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))

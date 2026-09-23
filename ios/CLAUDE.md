@@ -1,0 +1,1 @@
+- Workout timer: `workouts.started_at` (default now()) drives the ticking header pill via `src/lib/duration.ts`; a session is 'live' only if unfinished, dated today, and under 6 h. Finished length = finished_at − started_at, shown on rows when between 1 min and 6 h.

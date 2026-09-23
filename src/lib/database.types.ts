@@ -34,9 +34,9 @@ export type Database = {
         ]
       }
       workouts: {
-        Row: { created_at: string; date: string; id: string; notes: string; title: string; updated_at: string; user_id: string; finished_at: string | null }
-        Insert: { created_at?: string; date?: string; id?: string; notes?: string; title?: string; updated_at?: string; user_id: string; finished_at?: string | null }
-        Update: { created_at?: string; date?: string; id?: string; notes?: string; title?: string; updated_at?: string; user_id?: string; finished_at?: string | null }
+        Row: { created_at: string; date: string; id: string; notes: string; title: string; updated_at: string; user_id: string; finished_at: string | null; started_at: string }
+        Insert: { created_at?: string; date?: string; id?: string; notes?: string; title?: string; updated_at?: string; user_id: string; finished_at?: string | null; started_at?: string }
+        Update: { created_at?: string; date?: string; id?: string; notes?: string; title?: string; updated_at?: string; user_id?: string; finished_at?: string | null; started_at?: string }
         Relationships: []
       }
     }

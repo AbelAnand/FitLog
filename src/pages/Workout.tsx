@@ -9,6 +9,7 @@ import { ExerciseCard, type LastSession } from '../components/ExerciseCard'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { Button, Icon, MenuSheet, Sheet, Spinner, Toggle } from '../components/ui'
 import { bestByExercise } from '../lib/prs'
+import { formatClock, formatSessionLength, isLiveSession, useElapsed } from '../lib/duration'
 import { isNative } from '../lib/native'
 import { getGymSession, loadReminderSettings, startGymSession, stopGymSession } from '../lib/notifications'
 
@@ -96,6 +97,9 @@ export function WorkoutPage() {
     return workouts.find((w) => w.id !== id && w.title.trim().toLowerCase() === workout.title.trim().toLowerCase() && w.exerciseNames.length > 0 && w.date <= workout.date) ?? null
   }, [workouts, workout, id])
 
+  const live = !!workout && isLiveSession(workout)
+  const elapsed = useElapsed(workout?.started_at, live)
+
   if (isLoading) return <Spinner className="pt-32" />
   if (error || !workout) {
     return (
@@ -108,6 +112,7 @@ export function WorkoutPage() {
 
   const saving = updateWorkout.isPending || updateSets.isPending || addSets.isPending || replaceSets.isPending || updateWorkoutExercise.isPending
   const finished = !!workout.finished_at
+  const sessionLength = formatSessionLength(workout.started_at, workout.finished_at)
 
   const finish = async () => {
     await updateWorkout.mutateAsync({ finished_at: new Date().toISOString() })
@@ -127,8 +132,13 @@ export function WorkoutPage() {
       <div className="sticky top-0 z-30 -mx-4 px-4 pt-2 pb-2 bg-bg/90 backdrop-blur-xl flex items-center justify-between">
         <button type="button" aria-label="Back" onClick={() => nav(-1)} className="-ml-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.Back /></button>
         <div className="flex items-center gap-2 text-[13px] text-faint">
-          {gymActive && <span className="inline-flex items-center gap-1 text-accent"><Icon.Bell /> Gym</span>}
-          {saving ? 'Saving…' : 'Saved'}
+          {live && (
+            <span className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[15px] font-semibold tabular ${gymActive ? 'bg-accent-dim text-accent' : 'bg-surface-2 text-text'}`} aria-label="Workout timer">
+              {gymActive ? <Icon.Bell /> : <Icon.Clock />}
+              {formatClock(elapsed)}
+            </span>
+          )}
+          <span>{saving ? 'Saving…' : 'Saved'}</span>
         </div>
         <button type="button" aria-label="More" onClick={() => setMenu(true)} className="-mr-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.More /></button>
       </div>
@@ -149,7 +159,11 @@ export function WorkoutPage() {
           className="bg-transparent text-muted text-[15px] outline-none"
           aria-label="Workout date"
         />
-        {finished && <span className="inline-flex items-center gap-1 text-[12px] font-medium text-accent"><Icon.Check /> Finished</span>}
+        {finished && (
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-accent">
+            <Icon.Check /> Finished{sessionLength ? ` · ${sessionLength}` : ''}
+          </span>
+        )}
       </div>
 
       {workout.exercises.length === 0 && previousSameTitle && (

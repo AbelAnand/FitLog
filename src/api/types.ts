@@ -16,6 +16,7 @@ export interface WorkoutSummary {
   date: string
   notes: string
   created_at: string
+  started_at: string
   finished_at: string | null
   exerciseNames: string[]
   setCount: number
@@ -50,6 +51,7 @@ export interface WorkoutDetail {
   date: string
   notes: string
   created_at: string
+  started_at: string
   finished_at: string | null
   exercises: WorkoutExerciseDetail[]
 }
