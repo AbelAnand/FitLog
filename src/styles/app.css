@@ -27,6 +27,10 @@
   }
 
   html, body {
+    /* App-like feel: no text selection or long-press callouts except in real text fields. */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
     background: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-sans);
@@ -43,6 +47,17 @@
     font: inherit;
     color: inherit;
   }
+
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  img, svg {
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+  button svg, a svg { pointer-events: none; }
 
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {

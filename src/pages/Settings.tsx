@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAllSets, useProfile } from '../api/queries'
 import { useUpdateProfile } from '../api/mutations'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { exportCsv, setsToCsv } from '../lib/csv'
-import { Button, Icon, PageTitle, Segmented } from '../components/ui'
-import type { Unit } from '../lib/units'
+import { isNative } from '../lib/native'
+import { DEFAULT_SETTINGS, loadReminderSettings, requestNotificationPermission, saveReminderSettings, syncDailyReminder, type ReminderSettings } from '../lib/notifications'
+import { Button, Icon, PageTitle, Segmented, Stepper, Toggle } from '../components/ui'
+import type { DistanceUnit, Unit } from '../lib/units'
 
 export function SettingsPage() {
   const { user } = useAuth()
@@ -13,27 +15,76 @@ export function SettingsPage() {
   const update = useUpdateProfile()
   const { data: rows = [] } = useAllSets()
   const [exportMsg, setExportMsg] = useState<string | null>(null)
+  const [rem, setRem] = useState<ReminderSettings>(DEFAULT_SETTINGS)
+  const [permDenied, setPermDenied] = useState(false)
+
+  useEffect(() => {
+    loadReminderSettings().then(setRem)
+  }, [])
+
+  const saveRem = async (patch: Partial<ReminderSettings>) => {
+    const next = { ...rem, ...patch }
+    if ((patch.dailyEnabled || patch.gymEnabled) && isNative) {
+      const ok = await requestNotificationPermission()
+      setPermDenied(!ok)
+      if (!ok) return
+    }
+    setRem(next)
+    await saveReminderSettings(next)
+    const trained = Array.from(new Set(rows.map((r) => r.date)))
+    await syncDailyReminder(trained, next)
+  }
 
   const goal = profile?.weekly_goal ?? 4
+  const timeValue = `${String(rem.hour).padStart(2, '0')}:${String(rem.minute).padStart(2, '0')}`
 
   return (
     <>
       <PageTitle title="Settings" />
 
       <Section title="Units">
-        <Row label="Weight unit" hint="Existing logs are converted on display.">
+        <Row label="Weight" hint="Existing logs are converted on display.">
           <Segmented<Unit> value={profile?.unit ?? 'lb'} options={[{ value: 'lb', label: 'lb' }, { value: 'kg', label: 'kg' }]} onChange={(unit) => update.mutate({ unit })} />
+        </Row>
+        <Row label="Distance" hint="For cardio.">
+          <Segmented<DistanceUnit> value={profile?.distance_unit ?? 'mi'} options={[{ value: 'mi', label: 'mi' }, { value: 'km', label: 'km' }]} onChange={(distance_unit) => update.mutate({ distance_unit })} />
         </Row>
       </Section>
 
       <Section title="Goal">
         <Row label="Workouts per week" hint="Your streak counts weeks you hit this.">
-          <div className="inline-flex items-center rounded-xl bg-surface-2">
-            <button type="button" aria-label="Decrease" className="h-10 w-10 text-[20px] text-muted" onClick={() => goal > 1 && update.mutate({ weekly_goal: goal - 1 })}>−</button>
-            <span className="w-8 text-center font-semibold tabular">{goal}</span>
-            <button type="button" aria-label="Increase" className="h-10 w-10 text-[20px] text-muted" onClick={() => goal < 14 && update.mutate({ weekly_goal: goal + 1 })}>+</button>
-          </div>
+          <Stepper value={goal} min={1} max={14} onChange={(v) => update.mutate({ weekly_goal: v })} />
         </Row>
+      </Section>
+
+      <Section title="Reminders">
+        {!isNative && <div className="px-4 py-3 text-[13px] text-muted">Reminders are available in the iPhone app.</div>}
+        <Row label="Daily check-in" hint="Nudge on days with no workout logged">
+          <Toggle checked={rem.dailyEnabled} onChange={(v) => saveRem({ dailyEnabled: v })} label="Daily check-in" />
+        </Row>
+        {rem.dailyEnabled && (
+          <Row label="Remind me at" hint="Skipped automatically once you've logged.">
+            <input
+              type="time"
+              value={timeValue}
+              onChange={(e) => {
+                const [h, m] = e.target.value.split(':').map(Number)
+                if (Number.isFinite(h) && Number.isFinite(m)) saveRem({ hour: h, minute: m })
+              }}
+              className="h-10 px-3 rounded-xl bg-surface-2 border border-border/60 outline-none tabular"
+              aria-label="Reminder time"
+            />
+          </Row>
+        )}
+        <Row label="Gym reminders" hint="Soft nudges to log sets during a workout">
+          <Toggle checked={rem.gymEnabled} onChange={(v) => saveRem({ gymEnabled: v })} label="Gym reminders" />
+        </Row>
+        {rem.gymEnabled && (
+          <Row label="Every" hint="Minutes between nudges">
+            <Stepper value={rem.gymIntervalMin} min={5} max={60} onChange={(v) => saveRem({ gymIntervalMin: v })} suffix=" min" />
+          </Row>
+        )}
+        {permDenied && <div className="px-4 py-3 text-[13px] text-danger">Notifications are off for FitLog. Enable them in iPhone Settings → Notifications → FitLog.</div>}
       </Section>
 
       <Section title="Data">
@@ -59,9 +110,11 @@ export function SettingsPage() {
         </Row>
       </Section>
 
-      <div className="mt-8 text-center text-[12px] text-faint px-6">
-        Tip: in Safari, tap Share → “Add to Home Screen” to install FitLog as an app.
-      </div>
+      {!isNative && (
+        <div className="mt-8 text-center text-[12px] text-faint px-6">
+          Tip: in Safari, tap Share → “Add to Home Screen” to install FitLog as an app.
+        </div>
+      )}
     </>
   )
 }

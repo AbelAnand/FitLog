@@ -1,9 +1,11 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useNavigate } from 'react-router'
 import { AuthProvider, useAuth } from './lib/auth'
 import { TabBar } from './components/TabBar'
 import { Spinner } from './components/ui'
+import { isNative } from './lib/native'
+import { onNotificationTap } from './lib/notifications'
 import { AuthPage } from './pages/Auth'
 import { HomePage } from './pages/Home'
 import { HistoryPage } from './pages/History'
@@ -16,6 +18,29 @@ const ProgressPage = lazy(() => import('./pages/Progress').then((m) => ({ defaul
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: true } },
 })
+
+/** Deep links from the widget (fitlog://start) and notification taps. */
+function NativeRouting() {
+  const nav = useNavigate()
+  useEffect(() => {
+    if (!isNative) return
+    let removeTap: (() => void) | undefined
+    let removeUrl: { remove: () => void } | undefined
+    onNotificationTap(({ workoutId }) => nav(workoutId ? `/workout/${workoutId}` : '/')).then((r) => { removeTap = r })
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.addListener('appUrlOpen', ({ url }) => {
+        const path = url.replace(/^fitlog:\/\//, '')
+        if (path.startsWith('start')) nav('/?start=1')
+        else nav(`/${path.replace(/^\/+/, '')}`)
+      }).then((h) => { removeUrl = h })
+    })
+    return () => {
+      removeTap?.()
+      removeUrl?.remove()
+    }
+  }, [nav])
+  return null
+}
 
 function Protected() {
   const { user, loading } = useAuth()
@@ -49,6 +74,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter basename={basename}>
+          <NativeRouting />
           <Routes>
             <Route element={<PublicOnly />}>
               <Route path="/auth" element={<AuthPage />} />

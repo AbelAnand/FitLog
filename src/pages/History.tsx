@@ -3,10 +3,11 @@ import { format, isSameMonth, parseISO } from 'date-fns'
 import { useWorkouts } from '../api/queries'
 import { Calendar } from '../components/Calendar'
 import { EmptyState, Icon, PageTitle, Spinner } from '../components/ui'
-import { WorkoutRow } from './Home'
+import { WorkoutRow } from '../components/WorkoutRow'
 
 export function HistoryPage() {
-  const { data: workouts = [], isLoading } = useWorkouts()
+  const { data: all = [], isLoading } = useWorkouts()
+  const workouts = useMemo(() => all.filter((w) => w.exerciseNames.length > 0), [all])
   const [month, setMonth] = useState(() => new Date())
   const [selected, setSelected] = useState<Date | null>(null)
 

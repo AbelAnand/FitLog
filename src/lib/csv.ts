@@ -1,15 +1,17 @@
 import type { SetRow } from './prs'
 import { isNative } from './native'
 
-function esc(v: string | number): string {
-  const s = String(v)
+function esc(v: string | number | null): string {
+  const s = v == null ? '' : String(v)
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 export function setsToCsv(rows: SetRow[]): string {
-  const header = ['date', 'workout', 'exercise', 'set', 'weight', 'unit', 'reps']
+  const header = ['date', 'workout', 'exercise', 'kind', 'set', 'type', 'weight', 'unit', 'reps', 'duration_seconds', 'distance', 'distance_unit']
   const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date) || a.created_at.localeCompare(b.created_at))
-  const lines = sorted.map((r) => [r.date, r.workout_title, r.exercise_name, r.set_number, r.weight, r.unit, r.reps].map(esc).join(','))
+  const lines = sorted.map((r) =>
+    [r.date, r.workout_title, r.exercise_name, r.exercise_kind, r.set_number, r.set_type, r.weight, r.unit, r.reps, r.duration_seconds, r.distance, r.distance_unit].map(esc).join(','),
+  )
   return [header.join(','), ...lines].join('\n')
 }
 

@@ -1,4 +1,5 @@
-import { toKg, type Unit } from './units'
+import type { ExerciseKind, SetType } from '../api/types'
+import { toKg, toKm, type DistanceUnit, type Unit } from './units'
 
 /** A single logged set, flattened with its workout and exercise context. */
 export interface SetRow {
@@ -7,13 +8,23 @@ export interface SetRow {
   unit: Unit
   reps: number
   set_number: number
+  set_type: SetType
+  duration_seconds: number | null
+  distance: number | null
+  distance_unit: DistanceUnit | null
   created_at: string
   workout_exercise_id: string
   exercise_id: string
   exercise_name: string
+  exercise_kind: ExerciseKind
   workout_id: string
   workout_title: string
   date: string // yyyy-MM-dd
+}
+
+/** Strength sets that count toward PRs and volume. */
+export function counts(r: Pick<SetRow, 'reps' | 'set_type' | 'exercise_kind'>): boolean {
+  return r.exercise_kind !== 'cardio' && r.set_type !== 'warmup' && r.reps > 0
 }
 
 export interface Session {
@@ -23,6 +34,9 @@ export interface Session {
   topKg: number
   topReps: number
   volumeKg: number
+  /** Cardio totals */
+  seconds: number
+  km: number
   sets: SetRow[]
 }
 
@@ -33,43 +47,34 @@ export function sessionsFor(rows: SetRow[], exerciseId: string): Session[] {
     if (r.exercise_id !== exerciseId) continue
     let s = byWorkout.get(r.workout_id)
     if (!s) {
-      s = { workout_id: r.workout_id, workout_title: r.workout_title, date: r.date, topKg: 0, topReps: 0, volumeKg: 0, sets: [] }
+      s = { workout_id: r.workout_id, workout_title: r.workout_title, date: r.date, topKg: 0, topReps: 0, volumeKg: 0, seconds: 0, km: 0, sets: [] }
       byWorkout.set(r.workout_id, s)
     }
-    const kg = toKg(r.weight, r.unit)
     s.sets.push(r)
+    if (r.exercise_kind === 'cardio') {
+      s.seconds += r.duration_seconds ?? 0
+      s.km += r.distance ? toKm(r.distance, r.distance_unit ?? 'mi') : 0
+      continue
+    }
+    if (!counts(r)) continue
+    const kg = toKg(r.weight, r.unit)
     s.volumeKg += kg * r.reps
     if (kg > s.topKg || (kg === s.topKg && r.reps > s.topReps)) {
       s.topKg = kg
       s.topReps = r.reps
     }
   }
+  for (const s of byWorkout.values()) s.sets.sort((a, b) => a.set_number - b.set_number)
   return [...byWorkout.values()].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.sets[0].created_at.localeCompare(b.sets[0].created_at)))
 }
 
-/**
- * Best weight (kg) per exercise, optionally excluding one workout so the
- * editor can compare the current session against everything before it.
- */
+/** Best weight (kg) per strength exercise, optionally excluding one workout. */
 export function bestByExercise(rows: SetRow[], excludeWorkoutId?: string): Map<string, number> {
   const best = new Map<string, number>()
   for (const r of rows) {
-    if (r.workout_id === excludeWorkoutId) continue
-    if (r.reps <= 0) continue
+    if (r.workout_id === excludeWorkoutId || !counts(r)) continue
     const kg = toKg(r.weight, r.unit)
     if (kg > (best.get(r.exercise_id) ?? 0)) best.set(r.exercise_id, kg)
-  }
-  return best
-}
-
-/** Best weight per exercise considering only workouts strictly before `date` (or same date, earlier workout). */
-export function bestBefore(rows: SetRow[], exerciseId: string, workoutId: string, date: string): number {
-  let best = 0
-  for (const r of rows) {
-    if (r.exercise_id !== exerciseId || r.workout_id === workoutId || r.reps <= 0) continue
-    if (r.date > date) continue
-    const kg = toKg(r.weight, r.unit)
-    if (kg > best) best = kg
   }
   return best
 }
@@ -93,22 +98,4 @@ export function prTimeline(sessions: Session[]): PrEvent[] {
     }
   }
   return events
-}
-
-/** Set ids that are PRs: the first set in a session reaching a weight above all previous sessions. */
-export function prSetIds(rows: SetRow[]): Set<string> {
-  const ids = new Set<string>()
-  const exerciseIds = new Set(rows.map((r) => r.exercise_id))
-  for (const ex of exerciseIds) {
-    const sessions = sessionsFor(rows, ex)
-    let best = 0
-    for (const s of sessions) {
-      if (s.topKg > best && s.topReps > 0) {
-        const first = s.sets.find((r) => toKg(r.weight, r.unit) === s.topKg)
-        if (first) ids.add(first.id)
-        best = s.topKg
-      }
-    }
-  }
-  return ids
 }

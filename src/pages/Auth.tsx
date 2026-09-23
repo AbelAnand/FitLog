@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { Button, TextInput } from '../components/ui'
 
@@ -9,6 +9,18 @@ export function AuthPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  // Simulator/dev convenience only: a build with VITE_TEST_LOGIN_* set signs in automatically.
+  useEffect(() => {
+    const email = import.meta.env.VITE_TEST_LOGIN_EMAIL as string | undefined
+    const password = import.meta.env.VITE_TEST_LOGIN_PASSWORD as string | undefined
+    if (!email || !password) return
+    setNotice(`Signing in as ${email}…`)
+    supabase.auth
+      .signInWithPassword({ email, password })
+      .then(({ error }) => { if (error) setError(`Auto sign-in failed: ${error.message}`) })
+      .catch((e: Error) => setError(`Auto sign-in threw: ${e.message}`))
+  }, [])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()

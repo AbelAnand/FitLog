@@ -1,4 +1,5 @@
 import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import { tap } from '../lib/haptics'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
@@ -91,6 +92,78 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   )
 }
 
+export interface MenuItem {
+  label: string
+  sub?: string
+  icon?: ReactNode
+  danger?: boolean
+  right?: ReactNode
+  keepOpen?: boolean
+  onClick: () => void
+}
+
+/** iOS-style action list inside a bottom sheet. */
+export function MenuSheet({ open, onClose, title, subtitle, items, footer }: { open: boolean; onClose: () => void; title?: string; subtitle?: string; items: MenuItem[]; footer?: ReactNode }) {
+  return (
+    <Sheet open={open} onClose={onClose}>
+      {(title || subtitle) && (
+        <div className="pt-3 pb-2">
+          {title && <div className="text-[17px] font-semibold">{title}</div>}
+          {subtitle && <div className="text-[13px] text-muted">{subtitle}</div>}
+        </div>
+      )}
+      <div className="mt-2 rounded-2xl bg-surface-2 divide-y divide-border/60 overflow-hidden">
+        {items.map((it) => (
+          <button
+            key={it.label}
+            type="button"
+            onClick={() => {
+              tap()
+              it.onClick()
+              if (!it.keepOpen) onClose()
+            }}
+            className={`w-full flex items-center gap-3 px-4 min-h-[54px] text-left active:bg-surface-3 ${it.danger ? 'text-danger' : 'text-text'}`}
+          >
+            {it.icon && <span className={`shrink-0 ${it.danger ? 'text-danger' : 'text-muted'}`}>{it.icon}</span>}
+            <span className="flex-1 min-w-0">
+              <span className="block text-[16px] font-medium truncate">{it.label}</span>
+              {it.sub && <span className="block text-[12px] text-muted">{it.sub}</span>}
+            </span>
+            {it.right}
+          </button>
+        ))}
+      </div>
+      {footer}
+      <Button variant="secondary" size="lg" className="w-full mt-3" onClick={onClose}>Cancel</Button>
+    </Sheet>
+  )
+}
+
+export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={(e) => { e.stopPropagation(); tap(); onChange(!checked) }}
+      className={`relative h-8 w-[52px] rounded-full transition ${checked ? 'bg-accent' : 'bg-surface-3'}`}
+    >
+      <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${checked ? 'left-[24px]' : 'left-1'}`} />
+    </button>
+  )
+}
+
+export function Stepper({ value, min, max, onChange, suffix }: { value: number; min: number; max: number; onChange: (v: number) => void; suffix?: string }) {
+  return (
+    <div className="inline-flex items-center rounded-xl bg-surface-2">
+      <button type="button" aria-label="Decrease" className="h-11 w-11 text-[22px] text-muted disabled:opacity-30" disabled={value <= min} onClick={() => { tap(); onChange(value - 1) }}>−</button>
+      <span className="min-w-10 text-center font-semibold tabular">{value}{suffix}</span>
+      <button type="button" aria-label="Increase" className="h-11 w-11 text-[22px] text-muted disabled:opacity-30" disabled={value >= max} onClick={() => { tap(); onChange(value + 1) }}>+</button>
+    </div>
+  )
+}
+
 export function EmptyState({ icon, title, body, action }: { icon?: ReactNode; title: string; body?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center text-center py-14 px-6">
@@ -151,5 +224,16 @@ export const Icon = {
   Repeat: () => <svg {...ico} aria-hidden="true"><path d="M17 2l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><path d="M7 22l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>,
   Flame: () => <svg {...ico} aria-hidden="true"><path d="M12 22c4.4 0 7-2.9 7-7 0-3-2-5.5-3.5-7-.5 2-1.5 3-2.5 3.5C13 9 12.5 5 9.5 2 9 6 5 8.5 5 14.5 5 19 7.6 22 12 22z" /></svg>,
   Dumbbell: () => <svg {...ico} aria-hidden="true"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12" /></svg>,
+  Note: () => <svg {...ico} aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></svg>,
+  Copy: () => <svg {...ico} aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>,
+  Check: () => <svg {...ico} aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>,
+  More: () => <svg {...ico} aria-hidden="true"><circle cx="5" cy="12" r="1.5" fill="currentColor" /><circle cx="12" cy="12" r="1.5" fill="currentColor" /><circle cx="19" cy="12" r="1.5" fill="currentColor" /></svg>,
+  Clock: () => <svg {...ico} aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>,
+  Bell: () => <svg {...ico} aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10 21a2 2 0 0 0 4 0" /></svg>,
+  BellOff: () => <svg {...ico} aria-hidden="true"><path d="M8.7 3A6 6 0 0 1 18 8c0 4.5 1.3 7 2.2 8M17 17H3s3-2 3-9" /><path d="M10 21a2 2 0 0 0 4 0M2 2l20 20" /></svg>,
+  Flag: () => <svg {...ico} aria-hidden="true"><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></svg>,
+  Run: () => <svg {...ico} aria-hidden="true"><circle cx="15" cy="4" r="2" /><path d="m9 20 2-6-3-3 4-4 3 3h4" /><path d="m6 12 3-3M13 14l3 6" /></svg>,
+  Rows: () => <svg {...ico} aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5" /><rect x="3" y="15" width="18" height="5" rx="1.5" /></svg>,
+  Sparkle: () => <svg {...ico} aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" /></svg>,
   Share: () => <svg {...ico} aria-hidden="true"><path d="M12 3v13M7 8l5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>,
 }

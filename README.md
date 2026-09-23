@@ -2,6 +2,8 @@
 
 A mobile-first workout tracker. Log each session (title, exercises, per-set weight × reps, notes), keep a weekly-goal streak, and watch your top-set weight climb per exercise.
 
+Features: set types (warm-up / working / drop / to failure), fill-down and quick-fill for repeated sets, per-exercise notes, title-aware exercise suggestions, cardio with time + distance + pace, long-press actions on workouts, automatic cleanup of empty workouts, daily and in-gym reminders, and a home-screen widget with a "Start workout" shortcut (`fitlog://start`).
+
 Ships two ways from the same code:
 
 - **Native iOS app** (Capacitor shell in `ios/`), installed from Xcode or TestFlight.

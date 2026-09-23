@@ -5,21 +5,21 @@ export type Database = {
   public: {
     Tables: {
       exercises: {
-        Row: { created_at: string; id: string; name: string; user_id: string }
-        Insert: { created_at?: string; id?: string; name: string; user_id: string }
-        Update: { created_at?: string; id?: string; name?: string; user_id?: string }
+        Row: { created_at: string; id: string; name: string; user_id: string; kind: string }
+        Insert: { created_at?: string; id?: string; name: string; user_id: string; kind?: string }
+        Update: { created_at?: string; id?: string; name?: string; user_id?: string; kind?: string }
         Relationships: []
       }
       profiles: {
-        Row: { created_at: string; id: string; unit: string; weekly_goal: number }
-        Insert: { created_at?: string; id: string; unit?: string; weekly_goal?: number }
-        Update: { created_at?: string; id?: string; unit?: string; weekly_goal?: number }
+        Row: { created_at: string; id: string; unit: string; weekly_goal: number; distance_unit: string }
+        Insert: { created_at?: string; id: string; unit?: string; weekly_goal?: number; distance_unit?: string }
+        Update: { created_at?: string; id?: string; unit?: string; weekly_goal?: number; distance_unit?: string }
         Relationships: []
       }
       sets: {
-        Row: { created_at: string; id: string; reps: number; set_number: number; unit: string; user_id: string; weight: number; workout_exercise_id: string }
-        Insert: { created_at?: string; id?: string; reps?: number; set_number?: number; unit?: string; user_id: string; weight?: number; workout_exercise_id: string }
-        Update: { created_at?: string; id?: string; reps?: number; set_number?: number; unit?: string; user_id?: string; weight?: number; workout_exercise_id?: string }
+        Row: { created_at: string; id: string; reps: number; set_number: number; unit: string; user_id: string; weight: number; workout_exercise_id: string; set_type: string; duration_seconds: number | null; distance: number | null; distance_unit: string | null }
+        Insert: { created_at?: string; id?: string; reps?: number; set_number?: number; unit?: string; user_id: string; weight?: number; workout_exercise_id: string; set_type?: string; duration_seconds?: number | null; distance?: number | null; distance_unit?: string | null }
+        Update: { created_at?: string; id?: string; reps?: number; set_number?: number; unit?: string; user_id?: string; weight?: number; workout_exercise_id?: string; set_type?: string; duration_seconds?: number | null; distance?: number | null; distance_unit?: string | null }
         Relationships: [
           { foreignKeyName: 'sets_workout_exercise_id_fkey'; columns: ['workout_exercise_id']; isOneToOne: false; referencedRelation: 'workout_exercises'; referencedColumns: ['id'] },
         ]
@@ -34,9 +34,9 @@ export type Database = {
         ]
       }
       workouts: {
-        Row: { created_at: string; date: string; id: string; notes: string; title: string; updated_at: string; user_id: string }
-        Insert: { created_at?: string; date?: string; id?: string; notes?: string; title?: string; updated_at?: string; user_id: string }
-        Update: { created_at?: string; date?: string; id?: string; notes?: string; title?: string; updated_at?: string; user_id?: string }
+        Row: { created_at: string; date: string; id: string; notes: string; title: string; updated_at: string; user_id: string; finished_at: string | null }
+        Insert: { created_at?: string; date?: string; id?: string; notes?: string; title?: string; updated_at?: string; user_id: string; finished_at?: string | null }
+        Update: { created_at?: string; date?: string; id?: string; notes?: string; title?: string; updated_at?: string; user_id?: string; finished_at?: string | null }
         Relationships: []
       }
     }
