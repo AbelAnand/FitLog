@@ -1,4 +1,4 @@
-import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TouchEvent as RTouchEvent } from 'react'
 import { tap } from '../lib/haptics'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -71,23 +71,82 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
 }
 
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title?: string; children: ReactNode }) {
+  const [dy, setDy] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const gesture = useRef<{ y: number; t: number; canDrag: boolean; dragging: boolean; dy: number } | null>(null)
+
   useEffect(() => {
     if (!open) return
+    setClosing(false)
+    setDy(0)
+    setDragging(false)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = prev
     }
   }, [open])
+
   if (!open) return null
+
+  const dismiss = () => {
+    setClosing(true)
+    window.setTimeout(onClose, 200)
+  }
+
+  const onTouchStart = (e: RTouchEvent) => {
+    const t = e.touches[0]
+    const target = e.target as HTMLElement
+    // Drag from the handle/title always; from the content only when its list is scrolled to the top.
+    const inScroll = !!scrollRef.current && scrollRef.current.contains(target)
+    const canDrag = !inScroll || (scrollRef.current?.scrollTop ?? 0) <= 0
+    gesture.current = { y: t.clientY, t: Date.now(), canDrag, dragging: false, dy: 0 }
+  }
+  const onTouchMove = (e: RTouchEvent) => {
+    const g = gesture.current
+    if (!g || !g.canDrag) return
+    const my = e.touches[0].clientY - g.y
+    if (!g.dragging) {
+      if (my <= 6) return
+      g.dragging = true
+      setDragging(true)
+    }
+    g.dy = Math.max(0, my)
+    setDy(g.dy)
+  }
+  const onTouchEnd = () => {
+    const g = gesture.current
+    gesture.current = null
+    if (!g || !g.dragging) return
+    setDragging(false)
+    const velocity = g.dy / Math.max(1, Date.now() - g.t)
+    if (g.dy > 110 || velocity > 0.5) dismiss()
+    else setDy(0)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
-      <button type="button" aria-label="Close" className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg mx-auto bg-surface rounded-t-[24px] border-t border-border/60 max-h-[88dvh] flex flex-col pb-safe">
+      <button type="button" aria-label="Close" className={`absolute inset-0 bg-black/60 ${closing ? 'sheet-backdrop-out' : 'sheet-backdrop-in'}`} onClick={dismiss} />
+      <div
+        className={`relative w-full max-w-lg mx-auto bg-surface rounded-t-[24px] border-t border-border/60 max-h-[88dvh] flex flex-col pb-safe ${closing ? 'sheet-out' : dragging || dy ? '' : 'sheet-in'}`}
+        style={{
+          transform: closing ? undefined : `translateY(${dy}px)`,
+          transition: dragging ? 'none' : 'transform 260ms cubic-bezier(.2,.8,.2,1)',
+          touchAction: dragging ? 'none' : undefined,
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
+      >
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-surface-3" />
         {title && <div className="px-5 pt-4 pb-2 text-[17px] font-semibold">{title}</div>}
         <div
+          ref={scrollRef}
           className="overflow-y-auto px-5 pb-6"
+          style={{ overscrollBehavior: 'contain' }}
           onTouchMove={() => {
             // Dragging the list puts the keyboard away, like a native scroll view.
             const a = document.activeElement as HTMLElement | null

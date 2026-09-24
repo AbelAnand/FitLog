@@ -1,5 +1,7 @@
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns'
+import { useRef } from 'react'
 import { Icon } from './ui'
+import { tap } from '../lib/haptics'
 
 export function Calendar({
   month,
@@ -16,12 +18,27 @@ export function Calendar({
   selected: Date | null
   onSelect: (d: Date) => void
 }) {
+  const touch = useRef<{ x: number; y: number } | null>(null)
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
     end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
   })
   return (
-    <div className="bg-surface rounded-[22px] border border-border/60 p-4">
+    <div
+      className="bg-surface rounded-[22px] border border-border/60 p-4"
+      style={{ touchAction: 'pan-y' }}
+      onTouchStart={(e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } }}
+      onTouchEnd={(e) => {
+        const s = touch.current
+        touch.current = null
+        if (!s) return
+        const dx = e.changedTouches[0].clientX - s.x
+        const dy = e.changedTouches[0].clientY - s.y
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+        tap()
+        onMonthChange(addMonths(month, dx < 0 ? 1 : -1))
+      }}
+    >
       <div className="flex items-center justify-between mb-3">
         <button type="button" aria-label="Previous month" className="h-10 w-10 -ml-2 flex items-center justify-center text-muted" onClick={() => onMonthChange(addMonths(month, -1))}>
           <Icon.ChevronLeft />

@@ -179,3 +179,13 @@
 /* Hide scrollbars on horizontal chip rows. */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* Bottom sheets slide in and out; a drag in progress overrides the transform inline. */
+@keyframes sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+.sheet-in { animation: sheet-in 280ms cubic-bezier(.2,.8,.2,1); }
+.sheet-out { animation: sheet-out 200ms ease-in forwards; }
+.sheet-backdrop-in { animation: fade-in 200ms ease-out; }
+.sheet-backdrop-out { animation: fade-out 200ms ease-in forwards; }

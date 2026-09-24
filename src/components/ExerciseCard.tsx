@@ -5,6 +5,7 @@ import { tap } from '../lib/haptics'
 import { convert, convertDistance, formatDistance, formatDuration, formatPace, formatWeight, parseDuration, stepFor, toKg, type DistanceUnit, type Unit } from '../lib/units'
 import { Button, Icon, MenuSheet, PrBadge, Segmented, Sheet, Stepper, Toggle } from './ui'
 import { MetricsSheet } from './MetricsSheet'
+import { SwipeRow } from './SwipeRow'
 import { METRIC_BY_KEY, type MetricKey } from '../data/cardio-metrics'
 import { cardioKm } from '../lib/prs'
 
@@ -276,9 +277,9 @@ export function ExerciseCard({
       <div className="px-4 pb-2 pt-1 flex flex-col gap-1.5">
         {we.sets.map((s, i) =>
           cardio ? (
-            <CardioRow key={s.id} set={s} label={numbers[i]} metrics={metrics} distanceUnit={distanceUnit} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} />
+            <CardioRow key={s.id} set={s} label={numbers[i]} metrics={metrics} distanceUnit={distanceUnit} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} onDelete={() => onDeleteSet(s.id)} />
           ) : (
-            <StrengthRow key={s.id} set={s} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onDrops={(drops) => onUpdateSets([{ setId: s.id, patch: { drops } }])} onMenu={() => setRowMenu(s)} />
+            <StrengthRow key={s.id} set={s} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onDrops={(drops) => onUpdateSets([{ setId: s.id, patch: { drops } }])} onMenu={() => setRowMenu(s)} onDelete={() => onDeleteSet(s.id)} />
           ),
         )}
       </div>
@@ -409,14 +410,15 @@ function useLocalField(serverValue: string, commit: (v: string) => void, delay =
   return { v, onChange, flush }
 }
 
-function StrengthRow({ set, label, unit, isPr, onChange, onDrops, onMenu }: { set: SetDetail; label: string; unit: Unit; isPr: boolean; onChange: (p: SetPatch) => void; onDrops: (drops: Drop[]) => void; onMenu: () => void }) {
+function StrengthRow({ set, label, unit, isPr, onChange, onDrops, onMenu, onDelete }: { set: SetDetail; label: string; unit: Unit; isPr: boolean; onChange: (p: SetPatch) => void; onDrops: (drops: Drop[]) => void; onMenu: () => void; onDelete: () => void }) {
   const displayWeight = set.unit === unit ? set.weight : convert(set.weight, set.unit, unit)
   const w = useLocalField(displayWeight ? formatWeight(displayWeight) : '', (s) => onChange({ weight: Math.max(0, parseFloat(s.replace(',', '.')) || 0), unit }))
   const r = useLocalField(set.reps ? String(set.reps) : '', (s) => onChange({ reps: Math.max(0, parseInt(s, 10) || 0) }))
   const isDrop = set.set_type === 'drop'
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center">
+      <SwipeRow onDelete={onDelete} surface="bg-surface">
+      <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center bg-surface">
         <Badge label={label} type={set.set_type} isPr={isPr} onClick={onMenu} />
         <div className="relative">
           <input className={inputClass} inputMode="decimal" placeholder="0" value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`Set ${label} weight`} />
@@ -427,6 +429,7 @@ function StrengthRow({ set, label, unit, isPr, onChange, onDrops, onMenu }: { se
           <Icon.More />
         </button>
       </div>
+      </SwipeRow>
       {isDrop && (
         <div className="ml-[48px] flex flex-col gap-1.5 border-l-2 border-accent/30 pl-2">
           {set.drops.map((d, i) => (
@@ -473,9 +476,10 @@ function DropRow({ drop, unit, displayUnit, label, onChange, onRemove }: { drop:
   )
 }
 
-function CardioRow({ set, label, metrics, distanceUnit, onChange, onMenu }: { set: SetDetail; label: string; metrics: MetricKey[]; distanceUnit: DistanceUnit; onChange: (p: SetPatch) => void; onMenu: () => void }) {
+function CardioRow({ set, label, metrics, distanceUnit, onChange, onMenu, onDelete }: { set: SetDetail; label: string; metrics: MetricKey[]; distanceUnit: DistanceUnit; onChange: (p: SetPatch) => void; onMenu: () => void; onDelete: () => void }) {
   return (
-    <div className="grid gap-2 items-center" style={{ gridTemplateColumns: `40px repeat(${metrics.length}, minmax(0, 1fr)) 44px` }}>
+    <SwipeRow onDelete={onDelete} surface="bg-surface">
+    <div className="grid gap-2 items-center bg-surface" style={{ gridTemplateColumns: `40px repeat(${metrics.length}, minmax(0, 1fr)) 44px` }}>
       <Badge label={label} type={set.set_type} isPr={false} onClick={onMenu} />
       {metrics.map((k) => (
         <MetricInput key={k} set={set} k={k} distanceUnit={distanceUnit} label={`Interval ${label} ${METRIC_BY_KEY[k].label.toLowerCase()}`} onChange={onChange} />
@@ -484,6 +488,7 @@ function CardioRow({ set, label, metrics, distanceUnit, onChange, onMenu }: { se
         <Icon.More />
       </button>
     </div>
+    </SwipeRow>
   )
 }
 

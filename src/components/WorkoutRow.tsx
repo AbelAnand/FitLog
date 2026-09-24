@@ -9,6 +9,7 @@ import { loadReminderSettings, startGymSession } from '../lib/notifications'
 import { isNative } from '../lib/native'
 import { tap } from '../lib/haptics'
 import { Button, Icon, MenuSheet, Sheet } from './ui'
+import { SwipeRow } from './SwipeRow'
 
 /** A workout in a list. Tap to open, long-press for actions. Plans get a Start button. */
 export function WorkoutRow({ w }: { w: WorkoutSummary }) {
@@ -34,7 +35,7 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
 
   return (
     <>
-      <div className="relative">
+      <SwipeRow rounded="rounded-[18px]" onDelete={() => setConfirm(true)} className="relative">
         <button
           type="button"
           {...press}
@@ -64,7 +65,7 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
             <Icon.Play /> Start
           </Button>
         )}
-      </div>
+      </SwipeRow>
 
       <MenuSheet
         open={menu}
