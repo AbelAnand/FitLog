@@ -3,7 +3,7 @@ import { useDeleteExercise } from '../api/mutations'
 import { useLongPress } from '../lib/useLongPress'
 import { useAllSets, useExercises } from '../api/queries'
 import type { ExerciseKind } from '../api/types'
-import { GROUP_LABELS, STARTER_EXERCISES, groupsForTitle, type MuscleGroup } from '../data/starter-exercises'
+import { GROUP_LABELS, STARTER_EXERCISES, groupsForTitle, isStarterExercise, type MuscleGroup } from '../data/starter-exercises'
 import { Button, Icon, MenuSheet, Sheet } from './ui'
 
 export function ExercisePicker({
@@ -116,7 +116,7 @@ export function ExercisePicker({
       {(model.suggestedMine.length > 0 || model.suggestedStarters.length > 0) && (
         <Section label={suggestedLabel} accent>
           {model.suggestedMine.map((e) => (
-            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={() => setManage({ id: e.id, name: e.name })} />
+            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={isStarterExercise(e.name) ? undefined : () => setManage({ id: e.id, name: e.name })} />
           ))}
           {model.suggestedStarters.map((s) => (
             <Row key={s.name} name={s.name} kind={s.kind} sub={GROUP_LABELS[s.group]} onClick={() => pick(s.name, s.kind, undefined, s.trackIncline)} />
@@ -127,7 +127,7 @@ export function ExercisePicker({
       {model.restMine.length > 0 && (
         <Section label="Your exercises">
           {model.restMine.map((e) => (
-            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={() => setManage({ id: e.id, name: e.name })} />
+            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={isStarterExercise(e.name) ? undefined : () => setManage({ id: e.id, name: e.name })} />
           ))}
         </Section>
       )}
@@ -147,7 +147,7 @@ export function ExercisePicker({
       {model.total === 0 && (
         <div className="py-8 text-center text-muted text-[14px]">{historyOnly ? 'Nothing logged yet.' : 'No matches. Press enter to create it.'}</div>
       )}
-      {(model.suggestedMine.length > 0 || model.restMine.length > 0) && <div className="pt-2 text-center text-[12px] text-faint">Hold one of your exercises to manage it</div>}
+      {[...model.suggestedMine, ...model.restMine].some((e) => !isStarterExercise(e.name)) && <div className="pt-2 text-center text-[12px] text-faint">Hold an exercise you created to delete it</div>}
 
       <MenuSheet
         open={!!manage}

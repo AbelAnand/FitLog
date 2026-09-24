@@ -8,6 +8,7 @@ import { fetchWorkout } from './queries'
 import type { Json } from '../lib/database.types'
 import type { Drop, ExerciseKind, Profile, SetDetail, SetPatch, WorkoutDetail } from './types'
 import { defaultMetricsFor, type MetricKey } from '../data/cardio-metrics'
+import { isStarterExercise } from '../data/starter-exercises'
 
 /** Postgres jsonb wants plain JSON; drops are simple objects so a cast is safe. */
 const dropsJson = (drops: Drop[] | undefined): Json => (drops ?? []).map((d) => ({ weight: d.weight, reps: d.reps }))
@@ -225,6 +226,8 @@ export function useDeleteExercise() {
   const invalidate = useInvalidateAll()
   return useMutation({
     mutationFn: async (exerciseId: string) => {
+      const { data: ex } = await supabase.from('exercises').select('name').eq('id', exerciseId).maybeSingle()
+      if (ex && isStarterExercise(ex.name)) throw new Error('Built-in exercises can\'t be deleted')
       const { error } = await supabase.from('exercises').delete().eq('id', exerciseId)
       if (error) throw error
     },

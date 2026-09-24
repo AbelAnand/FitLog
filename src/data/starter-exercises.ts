@@ -71,3 +71,10 @@ export function groupsForTitle(title: string): MuscleGroup[] {
   if (has('cardio', 'run', 'conditioning', 'bike', 'row', 'swim', 'hiit')) add('cardio')
   return groups
 }
+
+const STARTER_NAMES = new Set(STARTER_EXERCISES.map((s) => s.name.toLowerCase()))
+
+/** Built-in exercises can't be deleted or renamed by the user. */
+export function isStarterExercise(name: string): boolean {
+  return STARTER_NAMES.has(name.trim().toLowerCase())
+}
