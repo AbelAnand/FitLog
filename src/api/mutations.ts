@@ -220,6 +220,18 @@ export function useUpdateExercise(workoutId?: string) {
   })
 }
 
+/** Delete an exercise from the library. Cascades to every workout that used it. */
+export function useDeleteExercise() {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: async (exerciseId: string) => {
+      const { error } = await supabase.from('exercises').delete().eq('id', exerciseId)
+      if (error) throw error
+    },
+    onSuccess: () => invalidate(),
+  })
+}
+
 export function useRemoveExercise(workoutId: string) {
   const invalidate = useInvalidateAll()
   return useMutation({

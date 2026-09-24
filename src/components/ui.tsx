@@ -86,7 +86,16 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
       <div className="relative w-full max-w-lg mx-auto bg-surface rounded-t-[24px] border-t border-border/60 max-h-[88dvh] flex flex-col pb-safe">
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-surface-3" />
         {title && <div className="px-5 pt-4 pb-2 text-[17px] font-semibold">{title}</div>}
-        <div className="overflow-y-auto px-5 pb-6">{children}</div>
+        <div
+          className="overflow-y-auto px-5 pb-6"
+          onTouchMove={() => {
+            // Dragging the list puts the keyboard away, like a native scroll view.
+            const a = document.activeElement as HTMLElement | null
+            if (a && (a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement)) a.blur()
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   )
@@ -188,7 +197,7 @@ export function PageTitle({ eyebrow, title, right }: { eyebrow?: string; title: 
     <div className="flex items-end justify-between pt-3 pb-5">
       <div>
         {eyebrow && <div className="text-[13px] font-medium text-muted uppercase tracking-wide">{eyebrow}</div>}
-        <h1 className="text-[30px] leading-tight font-bold tracking-tight">{title}</h1>
+        <h1 className="page-title text-[30px] leading-tight">{title}</h1>
       </div>
       {right}
     </div>

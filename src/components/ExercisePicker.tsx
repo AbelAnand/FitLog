@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
+import { useDeleteExercise } from '../api/mutations'
+import { useLongPress } from '../lib/useLongPress'
 import { useAllSets, useExercises } from '../api/queries'
 import type { ExerciseKind } from '../api/types'
 import { GROUP_LABELS, STARTER_EXERCISES, groupsForTitle, type MuscleGroup } from '../data/starter-exercises'
-import { Icon, Sheet } from './ui'
+import { Button, Icon, MenuSheet, Sheet } from './ui'
 
 export function ExercisePicker({
   open,
@@ -21,8 +23,13 @@ export function ExercisePicker({
   title?: string
 }) {
   const [q, setQ] = useState('')
+  const [manage, setManage] = useState<{ id: string; name: string } | null>(null)
+  const [confirm, setConfirm] = useState<{ id: string; name: string; workouts: number } | null>(null)
+  const del = useDeleteExercise()
   const { data: exercises = [] } = useExercises()
   const { data: rows = [] } = useAllSets()
+
+  const usage = (id: string) => new Set(rows.filter((r) => r.exercise_id === id).map((r) => r.workout_id)).size
 
   const model = useMemo(() => {
     const query = q.trim().toLowerCase()
@@ -87,7 +94,10 @@ export function ExercisePicker({
           className="w-full h-12 pl-11 pr-4 rounded-xl bg-surface-2 border border-border/60 placeholder:text-faint outline-none focus:border-accent/60"
           enterKeyHint="done"
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && q.trim() && !historyOnly && !model.exact) pick(q.trim(), 'strength')
+            if (e.key !== 'Enter') return
+            // Enter creates a new exercise only for a real name; otherwise it just puts the keyboard away.
+            if (q.trim().length >= 3 && !historyOnly && !model.exact) pick(q.trim(), 'strength')
+            else (e.target as HTMLInputElement).blur()
           }}
         />
       </div>
@@ -106,7 +116,7 @@ export function ExercisePicker({
       {(model.suggestedMine.length > 0 || model.suggestedStarters.length > 0) && (
         <Section label={suggestedLabel} accent>
           {model.suggestedMine.map((e) => (
-            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} />
+            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={() => setManage({ id: e.id, name: e.name })} />
           ))}
           {model.suggestedStarters.map((s) => (
             <Row key={s.name} name={s.name} kind={s.kind} sub={GROUP_LABELS[s.group]} onClick={() => pick(s.name, s.kind, undefined, s.trackIncline)} />
@@ -117,7 +127,7 @@ export function ExercisePicker({
       {model.restMine.length > 0 && (
         <Section label="Your exercises">
           {model.restMine.map((e) => (
-            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} />
+            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={() => setManage({ id: e.id, name: e.name })} />
           ))}
         </Section>
       )}
@@ -137,6 +147,29 @@ export function ExercisePicker({
       {model.total === 0 && (
         <div className="py-8 text-center text-muted text-[14px]">{historyOnly ? 'Nothing logged yet.' : 'No matches. Press enter to create it.'}</div>
       )}
+      {(model.suggestedMine.length > 0 || model.restMine.length > 0) && <div className="pt-2 text-center text-[12px] text-faint">Hold one of your exercises to manage it</div>}
+
+      <MenuSheet
+        open={!!manage}
+        onClose={() => setManage(null)}
+        title={manage?.name}
+        subtitle={manage ? (usage(manage.id) ? `Logged in ${usage(manage.id)} ${usage(manage.id) === 1 ? 'workout' : 'workouts'}` : 'Never logged') : undefined}
+        items={[
+          { label: 'Delete exercise', icon: <Icon.Trash />, danger: true, onClick: () => manage && setConfirm({ ...manage, workouts: usage(manage.id) }) },
+        ]}
+      />
+
+      <Sheet open={!!confirm} onClose={() => setConfirm(null)} title={`Delete ${confirm?.name}?`}>
+        <p className="text-muted text-[14px] mb-4">
+          {confirm?.workouts
+            ? `It will be removed from ${confirm.workouts} ${confirm.workouts === 1 ? 'workout' : 'workouts'}, along with the sets you logged for it. Progress history for it will be gone. This can't be undone.`
+            : "It hasn't been logged anywhere, so nothing else changes."}
+        </p>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="lg" className="flex-1" onClick={() => setConfirm(null)}>Cancel</Button>
+          <Button size="lg" className="flex-1 !bg-danger !text-white" disabled={del.isPending} onClick={async () => { if (confirm) await del.mutateAsync(confirm.id); setConfirm(null) }}>Delete</Button>
+        </div>
+      </Sheet>
     </Sheet>
   )
 }
@@ -150,9 +183,10 @@ function Section({ label, children, accent }: { label: string; children: React.R
   )
 }
 
-function Row({ name, kind, sub, onClick }: { name: string; kind: ExerciseKind; sub?: string; onClick: () => void }) {
+function Row({ name, kind, sub, onClick, onHold }: { name: string; kind: ExerciseKind; sub?: string; onClick: () => void; onHold?: () => void }) {
+  const press = useLongPress(() => onHold?.())
   return (
-    <button type="button" onClick={onClick} className="w-full flex items-center justify-between gap-3 h-12 px-1 text-left active:bg-surface-2 rounded-lg">
+    <button type="button" {...(onHold ? press : {})} onClick={onClick} className="w-full flex items-center justify-between gap-3 h-12 px-1 text-left active:bg-surface-2 rounded-lg">
       <span className="flex items-center gap-2 min-w-0">
         <span className="text-[15px] truncate">{name}</span>
         {kind === 'cardio' && <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted bg-surface-2 rounded px-1.5 py-0.5">Cardio</span>}

@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
-/* Design tokens. Swap these to restyle the whole app. */
+/*
+ * Design tokens. Tailwind utilities (bg-bg, text-accent, …) compile to var(--color-*),
+ * so a theme is just a block that redefines these variables. See src/lib/theme.ts.
+ */
 @theme {
   --color-bg: #0b0d10;
   --color-surface: #15181d;
@@ -21,11 +24,103 @@
   --radius-card: 18px;
 }
 
-@layer base {
-  :root {
-    color-scheme: dark;
-  }
+/* ---- Themes ---- */
 
+:root {
+  color-scheme: dark;
+  --title-transform: none;
+  --title-tracking: -0.02em;
+  --title-weight: 700;
+}
+
+:root[data-theme="tide"] {
+  --color-bg: #0b1220;
+  --color-surface: #121a2b;
+  --color-surface-2: #182238;
+  --color-surface-3: #21304b;
+  --color-border: #22304a;
+  --color-text: #eef2f8;
+  --color-muted: #8fa0bb;
+  --color-faint: #5d6d88;
+  --color-accent: #3fb6ff;
+  --color-accent-ink: #06111f;
+  --color-accent-dim: rgba(63, 182, 255, 0.16);
+  --color-pr: #ffb020;
+  --color-pr-dim: rgba(255, 176, 32, 0.16);
+}
+
+:root[data-theme="rose"] {
+  --color-bg: #120b10;
+  --color-surface: #1c1219;
+  --color-surface-2: #251a22;
+  --color-surface-3: #31242d;
+  --color-border: #2f2129;
+  --color-text: #f7eef3;
+  --color-muted: #a8909c;
+  --color-faint: #6f5a65;
+  --color-accent: #ff5c8a;
+  --color-accent-ink: #16070d;
+  --color-accent-dim: rgba(255, 92, 138, 0.16);
+  --color-pr: #ffc24d;
+  --color-pr-dim: rgba(255, 194, 77, 0.16);
+}
+
+:root[data-theme="forest"] {
+  --color-bg: #0a100d;
+  --color-surface: #111a15;
+  --color-surface-2: #17221c;
+  --color-surface-3: #213027;
+  --color-border: #213027;
+  --color-text: #eef5f0;
+  --color-muted: #8ea698;
+  --color-faint: #5a6f62;
+  --color-accent: #4ade80;
+  --color-accent-ink: #06140b;
+  --color-accent-dim: rgba(74, 222, 128, 0.14);
+  --color-pr: #ffb020;
+  --color-pr-dim: rgba(255, 176, 32, 0.16);
+}
+
+:root[data-theme="ember"] {
+  color-scheme: light;
+  --color-bg: #f4f1ea;
+  --color-surface: #ffffff;
+  --color-surface-2: #efeae0;
+  --color-surface-3: #e4ddd0;
+  --color-border: #e2dccf;
+  --color-text: #1a1714;
+  --color-muted: #6b645b;
+  --color-faint: #a39c92;
+  --color-accent: #e2451f;
+  --color-accent-ink: #ffffff;
+  --color-accent-dim: rgba(226, 69, 31, 0.12);
+  --color-danger: #d1352b;
+  --color-pr: #c77d00;
+  --color-pr-dim: rgba(217, 140, 0, 0.14);
+  --title-transform: uppercase;
+  --title-tracking: -0.01em;
+  --title-weight: 800;
+}
+
+:root[data-theme="slate"] {
+  color-scheme: light;
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef0f3;
+  --color-surface-3: #e2e5ea;
+  --color-border: #e3e6eb;
+  --color-text: #111418;
+  --color-muted: #5f6773;
+  --color-faint: #9aa3ae;
+  --color-accent: #111418;
+  --color-accent-ink: #ffffff;
+  --color-accent-dim: rgba(17, 20, 24, 0.08);
+  --color-danger: #d1352b;
+  --color-pr: #c77d00;
+  --color-pr-dim: rgba(199, 125, 0, 0.14);
+}
+
+@layer base {
   html, body {
     /* App-like feel: no text selection or long-press callouts except in real text fields. */
     -webkit-user-select: none;
@@ -53,17 +148,25 @@
     user-select: text;
   }
 
-  img, svg {
-    -webkit-user-drag: none;
-    pointer-events: none;
-  }
-  button svg, a svg { pointer-events: none; }
-
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
+
+  img, svg {
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+  button svg, a svg { pointer-events: none; }
+}
+
+/* Page and workout titles follow the theme's typographic voice. */
+.page-title {
+  font-family: var(--font-display);
+  text-transform: var(--title-transform);
+  letter-spacing: var(--title-tracking);
+  font-weight: var(--title-weight);
 }
 
 /* Safe-area helpers for the notch and home indicator. */

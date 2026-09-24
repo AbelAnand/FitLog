@@ -7,6 +7,8 @@ import { exportCsv, setsToCsv } from '../lib/csv'
 import { isNative } from '../lib/native'
 import { DEFAULT_SETTINGS, loadReminderSettings, requestNotificationPermission, saveReminderSettings, syncDailyReminder, type ReminderSettings } from '../lib/notifications'
 import { Button, Icon, PageTitle, Segmented, Stepper, Toggle } from '../components/ui'
+import { THEMES, saveTheme, useTheme } from '../lib/theme'
+import { tap } from '../lib/haptics'
 import type { DistanceUnit, Unit } from '../lib/units'
 
 export function SettingsPage() {
@@ -36,11 +38,41 @@ export function SettingsPage() {
   }
 
   const goal = profile?.weekly_goal ?? 4
+  const theme = useTheme()
   const timeValue = `${String(rem.hour).padStart(2, '0')}:${String(rem.minute).padStart(2, '0')}`
 
   return (
     <>
       <PageTitle title="Settings" />
+
+      <Section title="Appearance">
+        <div className="px-4 py-3">
+          <div className="grid grid-cols-3 gap-2">
+            {THEMES.map((t) => {
+              const active = t.id === theme
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { tap(); saveTheme(t.id) }}
+                  aria-pressed={active}
+                  className={`rounded-2xl p-2 text-left border-2 transition ${active ? 'border-accent' : 'border-transparent'}`}
+                >
+                  <div className="h-14 rounded-xl overflow-hidden flex flex-col p-2 gap-1.5" style={{ background: t.swatch[0] }}>
+                    <div className="h-2.5 w-2/3 rounded-full" style={{ background: t.swatch[3], opacity: 0.9 }} />
+                    <div className="flex gap-1.5 items-end flex-1">
+                      <div className="h-full flex-1 rounded-md" style={{ background: t.swatch[1] }} />
+                      <div className="h-4 w-8 rounded-full" style={{ background: t.swatch[2] }} />
+                    </div>
+                  </div>
+                  <div className="mt-1.5 text-[13px] font-medium">{t.name}</div>
+                  <div className="text-[11px] text-muted leading-tight">{t.tagline}</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </Section>
 
       <Section title="Units">
         <Row label="Weight" hint="Existing logs are converted on display.">

@@ -9,6 +9,6 @@ export async function initNative(): Promise<void> {
   const [{ StatusBar, Style }, { Keyboard }] = await Promise.all([import('@capacitor/status-bar'), import('@capacitor/keyboard')])
   await StatusBar.setStyle({ style: Style.Dark })
   await StatusBar.setOverlaysWebView({ overlay: true })
-  // Hide the keyboard accessory bar so the numeric inputs get more room.
-  await Keyboard.setAccessoryBarVisible({ isVisible: false }).catch(() => {})
+  // Number pads have no return key; the accessory bar's Done button is how you leave them.
+  await Keyboard.setAccessoryBarVisible({ isVisible: true }).catch(() => {})
 }

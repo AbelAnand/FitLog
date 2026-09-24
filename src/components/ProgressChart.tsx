@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { formatWeight, type Unit } from '../lib/units'
+import { useThemeTokens } from '../lib/theme'
 
 export interface ChartPoint {
   date: string
@@ -11,12 +12,8 @@ export interface ChartPoint {
   label?: string
 }
 
-const ACCENT = '#c6f135'
-const SURFACE = '#15181d'
-const GRID = '#262b33'
-const MUTED = '#8b93a1'
-
 export function ProgressChart({ points, unit, lowerIsBetter = false }: { points: ChartPoint[]; unit: Unit | string; lowerIsBetter?: boolean }) {
+  const { accent: ACCENT, surface: SURFACE, grid: GRID, muted: MUTED, pr: PR } = useThemeTokens()
   if (points.length === 0) return null
   const values = points.map((p) => p.weight)
   const min = Math.min(...values)
@@ -74,7 +71,7 @@ export function ProgressChart({ points, unit, lowerIsBetter = false }: { points:
               const isLast = index === points.length - 1
               const show = single || payload.isPr || isLast
               if (!show) return <g key={index} />
-              return <circle key={index} cx={cx} cy={cy} r={isLast ? 5 : 4} fill={payload.isPr ? '#ffb020' : ACCENT} stroke={SURFACE} strokeWidth={2} />
+              return <circle key={index} cx={cx} cy={cy} r={isLast ? 5 : 4} fill={payload.isPr ? PR : ACCENT} stroke={SURFACE} strokeWidth={2} />
             }}
             activeDot={{ r: 6, fill: ACCENT, stroke: SURFACE, strokeWidth: 2 }}
           />

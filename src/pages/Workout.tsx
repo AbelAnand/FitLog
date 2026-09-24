@@ -168,8 +168,8 @@ export function WorkoutPage() {
   }
 
   return (
-    <main className="mx-auto max-w-lg px-4 pt-safe pb-safe">
-      <div className="sticky top-0 z-30 -mx-4 px-4 pt-2 pb-2 bg-bg/90 backdrop-blur-xl flex items-center justify-between">
+    <main className="mx-auto max-w-lg px-4 pb-safe">
+      <div className="sticky top-0 z-30 -mx-4 px-4 pb-2 bg-bg/90 backdrop-blur-xl flex items-center justify-between" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
         <button type="button" aria-label="Back" onClick={() => nav(-1)} className="-ml-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.Back /></button>
         <div className="flex items-center gap-2 text-[13px] text-faint">
           {plan && (
@@ -199,7 +199,7 @@ export function WorkoutPage() {
         value={title}
         onChange={(e) => { setTitle(e.target.value); debounced('title', e.target.value) }}
         placeholder="Workout title"
-        className="w-full bg-transparent text-[30px] font-bold tracking-tight outline-none placeholder:text-faint mt-1"
+        className="page-title w-full bg-transparent text-[30px] outline-none placeholder:text-faint mt-1"
         aria-label="Workout title"
       />
       <div className="mt-1 mb-5 flex items-center gap-3 flex-wrap">
