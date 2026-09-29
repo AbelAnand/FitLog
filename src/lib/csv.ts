@@ -1,9 +1,14 @@
 import type { SetRow } from './prs'
 import { isNative } from './native'
 
-function esc(v: string | number | null): string {
-  const s = v == null ? '' : String(v)
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+/**
+ * One CSV cell. Text that a spreadsheet would run as a formula (it starts with = + - or @) is
+ * prefixed with an apostrophe so it is shown as typed. Numbers are left alone.
+ */
+export function esc(v: string | number | null): string {
+  let s = v == null ? '' : String(v)
+  if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 export function setsToCsv(rows: SetRow[]): string {
@@ -17,26 +22,35 @@ export function setsToCsv(rows: SetRow[]): string {
   return [header.join(','), ...lines].join('\n')
 }
 
-/** Native app: write to the cache dir and open the iOS share sheet. Web: Web Share API or download. */
-export async function exportCsv(filename: string, csv: string): Promise<'shared' | 'downloaded'> {
+export type ShareResult = 'shared' | 'downloaded' | 'cancelled'
+
+/**
+ * Hand a text file to the person. iPhone: the share sheet ("Save to Files", AirDrop, Mail…).
+ * Browser: the Web Share API where it can carry files, otherwise a download.
+ */
+export async function shareTextFile(filename: string, text: string, type: string): Promise<ShareResult> {
   if (isNative) {
     const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')])
-    const written = await Filesystem.writeFile({ path: filename, data: csv, directory: Directory.Cache, encoding: Encoding.UTF8 })
+    const written = await Filesystem.writeFile({ path: filename, data: text, directory: Directory.Cache, encoding: Encoding.UTF8 })
     try {
-      await Share.share({ title: 'FitLog export', url: written.uri })
+      await Share.share({ title: filename, url: written.uri })
+      return 'shared'
     } catch (e) {
-      if (!/cancel/i.test((e as Error).message ?? '')) throw e
+      if (/cancel/i.test((e as Error).message ?? '')) return 'cancelled'
+      throw e
+    } finally {
+      // The copy in the cache was only there to be shared.
+      Filesystem.deleteFile({ path: filename, directory: Directory.Cache }).catch(() => {})
     }
-    return 'shared'
   }
-  const file = new File([csv], filename, { type: 'text/csv' })
+  const file = new File([text], filename, { type })
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
   if (nav.share && nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: 'FitLog export' })
+      await nav.share({ files: [file], title: filename })
       return 'shared'
     } catch (e) {
-      if ((e as Error).name === 'AbortError') return 'shared'
+      if ((e as Error).name === 'AbortError') return 'cancelled'
     }
   }
   const url = URL.createObjectURL(file)
@@ -49,3 +63,5 @@ export async function exportCsv(filename: string, csv: string): Promise<'shared'
   setTimeout(() => URL.revokeObjectURL(url), 1000)
   return 'downloaded'
 }
+
+export const exportCsv = (filename: string, csv: string) => shareTextFile(filename, csv, 'text/csv')

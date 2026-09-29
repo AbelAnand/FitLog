@@ -5,7 +5,8 @@ import Capacitor
 class FitLogViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(WidgetBridgePlugin())
-        NSLog("FitLog: WidgetBridge plugin registered")
+        bridge?.registerPluginInstance(LocalStorePlugin())
+        NSLog("FitLog: in-app plugins registered")
 
         if let webView = bridge?.webView {
             // Swipe in from the left edge to go back, like every other iOS app.
@@ -14,7 +15,8 @@ class FitLogViewController: CAPBridgeViewController {
             webView.scrollView.keyboardDismissMode = .interactive
         }
 
-        // Test hooks (simulator only; launch environment variables cannot be set on user installs):
+        #if DEBUG
+        // Test hooks, compiled into debug builds only:
         //   SIMCTL_CHILD_FITLOG_ROUTE=/progress  opens a screen directly
         //   SIMCTL_CHILD_FITLOG_JS='window.scrollTo(0,600)'  runs a snippet after the route
         let env = ProcessInfo.processInfo.environment
@@ -29,5 +31,6 @@ class FitLogViewController: CAPBridgeViewController {
                 self?.bridge?.webView?.evaluateJavaScript(snippet, completionHandler: nil)
             }
         }
+        #endif
     }
 }

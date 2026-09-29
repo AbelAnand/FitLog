@@ -148,3 +148,13 @@ export async function onNotificationTap(cb: (target: { workoutId?: string }) => 
   })
   return () => { handle.remove() }
 }
+
+/** Forget everything reminder-related on this device: scheduled notifications and saved settings. */
+export async function clearReminders(): Promise<void> {
+  const store = await kv()
+  await store.remove(KEY)
+  await store.remove(GYM_KEY)
+  if (!isNative) return
+  const { LocalNotifications } = await import('@capacitor/local-notifications')
+  await LocalNotifications.cancel({ notifications: [...DAILY_IDS, ...GYM_IDS].map((id) => ({ id })) }).catch(() => {})
+}

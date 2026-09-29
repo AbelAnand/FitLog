@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { format } from 'date-fns'
 import { useQueryClient } from '@tanstack/react-query'
-import { useProfile, useWorkouts } from '../api/queries'
+import { useBackupStatus, useProfile, useWorkouts } from '../api/queries'
+import { keys } from '../api/keys'
+import { db } from '../db'
 import { deleteEmptyWorkouts } from '../api/mutations'
 import { StreakCard } from '../components/StreakCard'
 import { NewWorkoutSheet } from '../components/NewWorkoutSheet'
@@ -19,6 +21,19 @@ export function HomePage() {
   const [params, setParams] = useSearchParams()
   const [sheet, setSheet] = useState(false)
   const [sheetMode, setSheetMode] = useState<'now' | 'plan'>('now')
+  const { data: backup } = useBackupStatus()
+
+  // A nudge to save a backup file once there is something worth losing and the last one is old.
+  const backupDue = useMemo(() => {
+    if (!backup || backup.workouts < 3) return false
+    const now = Date.now()
+    if (backup.snoozedUntil && Date.parse(backup.snoozedUntil) > now) return false
+    return !backup.lastBackupAt || now - Date.parse(backup.lastBackupAt) > 30 * 24 * 60 * 60_000
+  }, [backup])
+  const snoozeBackup = async () => {
+    await db.snoozeBackupReminder(new Date(Date.now() + 7 * 24 * 60 * 60_000).toISOString())
+    qc.invalidateQueries({ queryKey: keys.backup })
+  }
 
   // Widget deep link (fitlog://start) and notification taps land on /?start=1.
   useEffect(() => {
@@ -71,6 +86,19 @@ export function HomePage() {
               <Icon.CalendarPlus />
             </Button>
           </div>
+
+          {backupDue && (
+            <div className="mt-4 rounded-[18px] border border-border/60 bg-surface p-4">
+              <div className="text-[15px] font-semibold">Save a backup of your log</div>
+              <div className="mt-0.5 text-[13px] text-muted">
+                {backup?.lastBackupAt ? 'Your last backup file is over a month old.' : 'Your workouts are kept on this iPhone only.'} A backup file protects them if the phone is lost.
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Link to="/settings" className="inline-flex items-center justify-center h-9 px-3 rounded-xl bg-accent text-accent-ink text-[14px] font-semibold">Open Settings</Link>
+                <Button variant="ghost" size="sm" onClick={snoozeBackup}>Not now</Button>
+              </div>
+            </div>
+          )}
 
           {plans.length > 0 && (
             <>

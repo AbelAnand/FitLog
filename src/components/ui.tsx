@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TouchEvent as RTouchEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { tap } from '../lib/haptics'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -20,7 +21,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-2 select-none transition disabled:opacity-40 ${sizeClass} ${variantClass[variant]} ${className}`}
+      className={`press inline-flex items-center justify-center gap-2 select-none disabled:opacity-40 ${sizeClass} ${variantClass[variant]} ${className}`}
       {...props}
     />
   )
@@ -44,7 +45,7 @@ export function Chip({ active, children, onClick, className = '' }: { active?: b
     <button
       type="button"
       onClick={onClick}
-      className={`h-9 px-4 rounded-full text-[14px] font-medium whitespace-nowrap transition ${
+      className={`press h-9 px-4 rounded-full text-[14px] font-medium whitespace-nowrap ${
         active ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-text active:bg-surface-3'
       } ${className}`}
     >
@@ -126,7 +127,9 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     else setDy(0)
   }
 
-  return (
+  // Drawn at the top of the document, not inside the screen that opened it: a screen that is
+  // still easing into place would otherwise drag the sheet along with it.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
       <button type="button" aria-label="Close" className={`absolute inset-0 bg-black/60 ${closing ? 'sheet-backdrop-out' : 'sheet-backdrop-in'}`} onClick={dismiss} />
       <div
@@ -147,16 +150,12 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
           ref={scrollRef}
           className="overflow-y-auto px-5 pb-6"
           style={{ overscrollBehavior: 'contain' }}
-          onTouchMove={() => {
-            // Dragging the list puts the keyboard away, like a native scroll view.
-            const a = document.activeElement as HTMLElement | null
-            if (a && (a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement)) a.blur()
-          }}
         >
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -225,9 +224,9 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
 export function Stepper({ value, min, max, onChange, suffix }: { value: number; min: number; max: number; onChange: (v: number) => void; suffix?: string }) {
   return (
     <div className="inline-flex items-center rounded-xl bg-surface-2">
-      <button type="button" aria-label="Decrease" className="h-11 w-11 text-[22px] text-muted disabled:opacity-30" disabled={value <= min} onClick={() => { tap(); onChange(value - 1) }}>−</button>
+      <button type="button" aria-label="Decrease" className="press h-11 w-11 text-[22px] text-muted disabled:opacity-30" disabled={value <= min} onClick={() => { tap(); onChange(value - 1) }}>−</button>
       <span className="min-w-10 text-center font-semibold tabular">{value}{suffix}</span>
-      <button type="button" aria-label="Increase" className="h-11 w-11 text-[22px] text-muted disabled:opacity-30" disabled={value >= max} onClick={() => { tap(); onChange(value + 1) }}>+</button>
+      <button type="button" aria-label="Increase" className="press h-11 w-11 text-[22px] text-muted disabled:opacity-30" disabled={value >= max} onClick={() => { tap(); onChange(value + 1) }}>+</button>
     </div>
   )
 }
@@ -263,13 +262,20 @@ export function PageTitle({ eyebrow, title, right }: { eyebrow?: string; title: 
   )
 }
 
-export function PrBadge({ className = '' }: { className?: string }) {
+/**
+ * Marks a personal record: a tab in the top-right corner of the weight field. It stays inside the
+ * field, so it never hangs over a neighbouring row or gets clipped. The letters are dropped, leaving
+ * the crown, when the field is narrow (the parent must be a `@container`) or `compact` is set
+ * because the number next to it is long.
+ */
+export function PrBadge({ className = '', compact = false }: { className?: string; compact?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1 h-6 px-2 rounded-md bg-pr-dim text-pr text-[11px] font-bold tracking-wide ${className}`}>
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <span className={`pop-in origin-top-right inline-flex items-center gap-[3px] h-[17px] pl-[6px] pr-[7px] rounded-tr-xl rounded-bl-[9px] bg-pr text-accent-ink text-[9.5px] font-extrabold tracking-wide leading-none ${className}`}>
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M5 16 3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm0 2h14v2H5v-2z" />
       </svg>
-      PR
+      {!compact && <span className="hidden @min-[118px]:inline" aria-hidden="true">PR</span>}
+      <span className="sr-only">Personal record</span>
     </span>
   )
 }

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="FitLog is a free workout log for iPhone. No ads, no account, no subscription. Your log stays on your phone." />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <title>FitLog</title>
+    <style>
+    :root { color-scheme: dark light; --bg:#0b0d10; --surface:#15181d; --text:#f2f4f7; --muted:#9aa2b0; --accent:#c6f135; --accent-ink:#0b0d10; --link:#c6f135; --border:#262b33; }
+    @media (prefers-color-scheme: light) { :root { --bg:#f6f7f9; --surface:#ffffff; --text:#111418; --muted:#5f6773; --link:#3d5a00; --border:#e3e6eb; } }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin:0; background:var(--bg); color:var(--text); font:17px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
+    header.top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:36px; flex-wrap:wrap; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color:var(--text); text-decoration:none; }
+    .mark { height:36px; width:36px; border-radius:10px; background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; }
+    nav { display:flex; gap:18px; flex-wrap:wrap; font-size:15px; }
+    nav a { color:var(--muted); text-decoration:none; }
+    nav a[aria-current="page"], nav a:hover { color:var(--text); }
+    h1 { font-size:34px; line-height:1.12; letter-spacing:-0.02em; margin:0 0 10px; }
+    h2 { font-size:22px; margin:40px 0 8px; letter-spacing:-0.01em; }
+    h3 { font-size:17px; margin:26px 0 4px; }
+    p, li { color:var(--text); }
+    .lead { font-size:19px; color:var(--muted); margin:0 0 8px; }
+    .muted { color:var(--muted); }
+    a { color:var(--link); }
+    ul, ol { padding-left:22px; }
+    li { margin:6px 0; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px 20px; margin:22px 0; }
+    .card p { margin:0; }
+    table { width:100%; border-collapse:collapse; font-size:15px; }
+    th, td { text-align:left; vertical-align:top; padding:10px 8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+    .scroll { overflow-x:auto; }
+    .shots { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin:28px 0; }
+    .shots img { width:100%; height:auto; border-radius:18px; border:1px solid var(--border); display:block; }
+    .toc { columns:2; column-gap:24px; padding-left:20px; font-size:15px; }
+    @media (max-width:520px) { .toc { columns:1; } h1 { font-size:29px; } }
+    kbd { font:600 14px/1 -apple-system,system-ui,sans-serif; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:3px 7px; white-space:nowrap; }
+    footer { margin-top:56px; padding-top:20px; border-top:1px solid var(--border); font-size:14px; color:var(--muted); }
+    footer a { color:var(--muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg></span>FitLog</a><nav aria-label="Pages"><a href="./" aria-current="page">Overview</a><a href="guide.html">How to use</a><a href="privacy.html">Privacy</a><a href="support.html">Support</a></nav></header>
+      <h1>A workout log that stays on your iPhone</h1>
+      <p class="lead">Log sets in seconds, see your records, and keep your weekly streak. Free, with no ads, no account and no subscription.</p>
+
+      <div class="shots">
+        <img src="img/01-home.jpg" alt="The Home screen: an eight week streak, this week's progress, and recent workouts" width="600" height="1304" />
+        <img src="img/02-workout.jpg" alt="A workout in progress: Bench Press with a warm-up and three sets, the first marked as a personal record" width="600" height="1304" />
+        <img src="img/03-progress.jpg" alt="The Progress screen: a chart of Bench Press top weight rising over two months" width="600" height="1304" />
+      </div>
+
+      <h2>What it does</h2>
+      <ul>
+        <li><strong>Fast logging.</strong> Add an exercise, type a weight and reps, and the sets below fill in. Repeat your last session with one tap.</li>
+        <li><strong>Records and progress.</strong> A personal record is flagged the moment you lift it. Every exercise has a chart of your top weight.</li>
+        <li><strong>A weekly streak</strong> built around the number of days you choose to train.</li>
+        <li><strong>Strength and cardio.</strong> Warm-ups, drop sets and sets to failure. Time, distance, speed, incline, heart rate and more.</li>
+        <li><strong>Plans.</strong> Set up a workout ahead of time and check exercises off on the day.</li>
+        <li><strong>Made for iPhone.</strong> A Home Screen widget, optional reminders, and six themes.</li>
+      </ul>
+
+      <h2>Your data is yours</h2>
+      <div class="card"><p>FitLog has no accounts and no server. Your log is kept on your iPhone and is never sent to the developer or anyone else. You can save a backup file, export a spreadsheet, or erase everything at any time.</p></div>
+
+      <h2>Learn more</h2>
+      <ul>
+        <li><a href="guide.html">How to use FitLog</a>, including moving to a new iPhone</li>
+        <li><a href="privacy.html">Privacy policy</a></li>
+        <li><a href="support.html">Help and support</a></li>
+      </ul>
+
+      <footer>
+        FitLog is made by Abel Anand. <a href="guide.html">How to use</a> · <a href="privacy.html">Privacy policy</a> · <a href="support.html">Help and support</a>
+      </footer>
+    </main>
+    <script>
+      // An earlier version of this address was an installable web app. Remove what it left behind.
+      if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function (list) { list.forEach(function (r) { r.unregister() }) }).catch(function () {})
+    </script>
+  </body>
+</html>

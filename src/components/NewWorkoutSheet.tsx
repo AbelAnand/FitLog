@@ -35,10 +35,11 @@ export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: 
   const recent = Array.from(new Set(workouts.filter((w) => !w.is_plan).map((w) => w.title.trim()).filter(Boolean)))
   const suggestions = Array.from(new Set([...recent, ...DEFAULT_TITLES])).slice(0, 9)
 
-  const start = async (t: string) => {
+  const start = (t: string) => {
     const clean = t.trim() || 'Workout'
     const plan = mode === 'plan'
-    const id = await create.mutateAsync({ title: clean, is_plan: plan, date: plan ? planDate : logDate })
+    // The editor opens straight away; the workout is saved behind it.
+    const id = create({ title: clean, is_plan: plan, date: plan ? planDate : logDate })
     if (!plan && !backdated && gym && gymAvailable) startGymSession(id, clean)
     setTitle('')
     onClose()
@@ -80,8 +81,8 @@ export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: 
         ))}
       </div>
       <div className="flex gap-2">
-        <TextInput placeholder="Custom title…" value={title} onChange={(e) => setTitle(e.target.value)} enterKeyHint="go" onKeyDown={(e) => e.key === 'Enter' && title.trim() && start(title)} />
-        <Button onClick={() => start(title)} disabled={create.isPending} className="shrink-0">
+        <TextInput placeholder="Custom title…" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} enterKeyHint="go" onKeyDown={(e) => e.key === 'Enter' && title.trim() && start(title)} />
+        <Button onClick={() => start(title)} className="shrink-0">
           {mode === 'plan' ? 'Plan' : backdated ? 'Log' : 'Start'}
         </Button>
       </div>

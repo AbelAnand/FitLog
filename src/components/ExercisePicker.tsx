@@ -5,6 +5,7 @@ import { useAllSets, useExercises } from '../api/queries'
 import type { ExerciseKind } from '../api/types'
 import { GROUP_LABELS, STARTER_EXERCISES, groupsForTitle, isStarterExercise, type MuscleGroup } from '../data/starter-exercises'
 import { Button, Icon, MenuSheet, Sheet } from './ui'
+import { LIMITS } from '../data/limits'
 
 export function ExercisePicker({
   open,
@@ -91,6 +92,7 @@ export function ExercisePicker({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search or type a new exercise"
+          maxLength={LIMITS.exerciseName}
           className="w-full h-12 pl-11 pr-4 rounded-xl bg-surface-2 border border-border/60 placeholder:text-faint outline-none focus:border-accent/60"
           enterKeyHint="done"
           onKeyDown={(e) => {
@@ -104,10 +106,10 @@ export function ExercisePicker({
 
       {!historyOnly && q.trim() && !model.exact && (
         <div className="flex gap-2 mb-3">
-          <button type="button" onClick={() => pick(q.trim(), 'strength')} className="flex-1 flex items-center gap-2 h-12 px-3 rounded-xl bg-accent-dim text-accent font-medium text-[14px]">
+          <button type="button" onClick={() => pick(q.trim(), 'strength')} className="press flex-1 flex items-center gap-2 h-12 px-3 rounded-xl bg-accent-dim text-accent font-medium text-[14px]">
             <Icon.Plus /> Create “{q.trim()}”
           </button>
-          <button type="button" onClick={() => pick(q.trim(), 'cardio')} className="flex items-center gap-2 h-12 px-3 rounded-xl bg-surface-2 text-text font-medium text-[14px]">
+          <button type="button" onClick={() => pick(q.trim(), 'cardio')} className="press flex items-center gap-2 h-12 px-3 rounded-xl bg-surface-2 text-text font-medium text-[14px]">
             <Icon.Run /> as cardio
           </button>
         </div>

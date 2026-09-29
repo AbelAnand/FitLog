@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="How to use FitLog: logging workouts, records, streaks, reminders, backups, and moving to a new iPhone." />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <title>How to use · FitLog</title>
+    <style>
+    :root { color-scheme: dark light; --bg:#0b0d10; --surface:#15181d; --text:#f2f4f7; --muted:#9aa2b0; --accent:#c6f135; --accent-ink:#0b0d10; --link:#c6f135; --border:#262b33; }
+    @media (prefers-color-scheme: light) { :root { --bg:#f6f7f9; --surface:#ffffff; --text:#111418; --muted:#5f6773; --link:#3d5a00; --border:#e3e6eb; } }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin:0; background:var(--bg); color:var(--text); font:17px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
+    header.top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:36px; flex-wrap:wrap; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color:var(--text); text-decoration:none; }
+    .mark { height:36px; width:36px; border-radius:10px; background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; }
+    nav { display:flex; gap:18px; flex-wrap:wrap; font-size:15px; }
+    nav a { color:var(--muted); text-decoration:none; }
+    nav a[aria-current="page"], nav a:hover { color:var(--text); }
+    h1 { font-size:34px; line-height:1.12; letter-spacing:-0.02em; margin:0 0 10px; }
+    h2 { font-size:22px; margin:40px 0 8px; letter-spacing:-0.01em; }
+    h3 { font-size:17px; margin:26px 0 4px; }
+    p, li { color:var(--text); }
+    .lead { font-size:19px; color:var(--muted); margin:0 0 8px; }
+    .muted { color:var(--muted); }
+    a { color:var(--link); }
+    ul, ol { padding-left:22px; }
+    li { margin:6px 0; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px 20px; margin:22px 0; }
+    .card p { margin:0; }
+    table { width:100%; border-collapse:collapse; font-size:15px; }
+    th, td { text-align:left; vertical-align:top; padding:10px 8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+    .scroll { overflow-x:auto; }
+    .shots { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin:28px 0; }
+    .shots img { width:100%; height:auto; border-radius:18px; border:1px solid var(--border); display:block; }
+    .toc { columns:2; column-gap:24px; padding-left:20px; font-size:15px; }
+    @media (max-width:520px) { .toc { columns:1; } h1 { font-size:29px; } }
+    kbd { font:600 14px/1 -apple-system,system-ui,sans-serif; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:3px 7px; white-space:nowrap; }
+    footer { margin-top:56px; padding-top:20px; border-top:1px solid var(--border); font-size:14px; color:var(--muted); }
+    footer a { color:var(--muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg></span>FitLog</a><nav aria-label="Pages"><a href="./">Overview</a><a href="guide.html" aria-current="page">How to use</a><a href="privacy.html">Privacy</a><a href="support.html">Support</a></nav></header>
+      <h1>How to use FitLog</h1>
+      <p class="lead">Everything the app does, in the order you are likely to need it.</p>
+
+      <ul class="toc">
+        <li><a href="#start">Start a workout</a></li>
+        <li><a href="#exercises">Add exercises</a></li>
+        <li><a href="#sets">Log sets</a></li>
+        <li><a href="#types">Warm-ups and drop sets</a></li>
+        <li><a href="#cardio">Cardio</a></li>
+        <li><a href="#session">Pause and finish</a></li>
+        <li><a href="#plans">Plan ahead</a></li>
+        <li><a href="#records">Records and progress</a></li>
+        <li><a href="#streak">Your streak</a></li>
+        <li><a href="#history">History</a></li>
+        <li><a href="#reminders">Reminders</a></li>
+        <li><a href="#widget">Widget</a></li>
+        <li><a href="#settings">Units and themes</a></li>
+        <li><a href="#data">Keeping your log safe</a></li>
+        <li><a href="#newphone">Moving to a new iPhone</a></li>
+      </ul>
+
+      <h2 id="start">Start a workout</h2>
+      <ol>
+        <li>On Home, tap <kbd>Start workout</kbd>.</li>
+        <li>Tap a title such as Push or Legs, or type your own and tap <kbd>Start</kbd>.</li>
+      </ol>
+      <p>The workout opens straight away and a timer starts. To log a session you did on an earlier day, change the date in the same sheet before choosing a title. Past sessions have no timer.</p>
+      <p>A workout you leave without adding any exercise is discarded.</p>
+
+      <h2 id="exercises">Add exercises</h2>
+      <ol>
+        <li>Tap <kbd>Add exercise</kbd>.</li>
+        <li>Pick from the list, or search. Exercises you have used under the same workout title are suggested first.</li>
+        <li>To add your own, type its name and tap <kbd>Create</kbd>. Choose <kbd>as cardio</kbd> for a cardio exercise.</li>
+      </ol>
+      <p>If you did this workout before, <kbd>Repeat last</kbd> appears at the top of an empty workout and copies the exercises and sets from last time.</p>
+      <p>To delete an exercise you created from your library, hold it in the list. This also removes it from every workout it was logged in. Built-in exercises cannot be deleted.</p>
+
+      <h2 id="sets">Log sets</h2>
+      <ul>
+        <li>Type the weight and reps. Empty sets below take the same values, so three sets at one weight need typing once.</li>
+        <li><kbd>Add set</kbd> adds another with the same numbers as the one above.</li>
+        <li><kbd>Quick fill</kbd> logs several identical sets in one go, such as 3 sets of 8 at 185.</li>
+        <li>Under the exercise name, <kbd>Use</kbd> copies the sets from the last time you did it.</li>
+        <li>Swipe a set to the left to delete it. A long swipe deletes at once.</li>
+        <li>Tap the note icon to write a note for the exercise. There is a box for notes on the whole workout at the bottom.</li>
+      </ul>
+      <p>Changes are saved as you make them. The top of the screen reads Saved.</p>
+
+      <h2 id="types">Warm-ups, drop sets and sets to failure</h2>
+      <p>Tap the number at the start of a set to change its type, duplicate it, or copy it to the sets below.</p>
+      <ul>
+        <li><strong>Warm-up</strong> sets are marked W. They do not count toward records or volume.</li>
+        <li><strong>Drop set:</strong> one set that steps down in weight. Tap <kbd>+ Drop again</kbd> to add each step.</li>
+        <li><strong>To failure</strong> marks the set with F.</li>
+      </ul>
+
+      <h2 id="cardio">Cardio</h2>
+      <p>Cardio exercises log intervals in place of sets. Each exercise shows up to four figures, chosen from time, distance, speed, incline, level, calories, heart rate, floors, power and cadence.</p>
+      <p>To choose them, tap the <kbd>•••</kbd> on the exercise, then <kbd>Variables</kbd>. Time accepts 30, 30:00 or 1:05:00. If you log speed and time, the distance is worked out for you.</p>
+
+      <h2 id="session">Pause and finish</h2>
+      <ul>
+        <li>Tap the timer at the top to pause or resume, and to switch gym reminders on or off. Time spent paused is not counted.</li>
+        <li>Tap <kbd>Finish workout</kbd> when you are done.</li>
+        <li>To carry on with a finished workout, open it and tap <kbd>Resume</kbd>. The time in between is not counted.</li>
+        <li>To delete a workout, swipe it to the left in a list, or hold it for options.</li>
+      </ul>
+
+      <h2 id="plans">Plan ahead</h2>
+      <ol>
+        <li>On Home, tap the calendar button next to Start workout.</li>
+        <li>Choose the day and a title, then add the exercises and target sets.</li>
+        <li>On the day, tap <kbd>Start</kbd> on the plan. Check each exercise off as you finish it.</li>
+      </ol>
+      <p>Plans do not count toward your streak, your records or your history until you start them.</p>
+
+      <h2 id="records">Records and progress</h2>
+      <p>A set is marked <strong>PR</strong> when its weight is higher than the heaviest you have logged for that exercise in any earlier workout. Warm-ups do not count.</p>
+      <p>The Progress tab shows, for any exercise, your all-time best, a chart of your top weight over time, and a list of every record. For cardio it shows time, distance and pace.</p>
+
+      <h2 id="streak">Your streak</h2>
+      <p>A week counts when you train on at least as many different days as your weekly goal. Weeks run Monday to Sunday. The current week is added as soon as you reach the goal, and does not break the streak before it ends.</p>
+      <p>Change the goal in Settings, under Goal.</p>
+
+      <h2 id="history">History</h2>
+      <p>The History tab is a calendar of the days you trained. Swipe left or right to change month, and tap a day to see its workouts.</p>
+
+      <h2 id="reminders">Reminders</h2>
+      <p>Both kinds are optional and are switched on in Settings. iPhone asks for permission the first time.</p>
+      <ul>
+        <li><strong>Daily check-in:</strong> one reminder at the time you choose, only on days with no workout logged.</li>
+        <li><strong>Gym reminders:</strong> gentle nudges to log your sets while a workout is in progress. They stop when you pause or finish.</li>
+      </ul>
+
+      <h2 id="widget">Home Screen widget</h2>
+      <p>Hold an empty area of your Home Screen, tap <kbd>Edit</kbd>, then <kbd>Add Widget</kbd>, and search for FitLog. The widget shows your streak and this week's training days, and starts a workout when tapped.</p>
+
+      <h2 id="settings">Units and themes</h2>
+      <p>In Settings you can switch between pounds and kilograms, and miles and kilometres. Workouts you already logged are converted for display and keep the values you typed. There are six themes to choose from.</p>
+
+      <h2 id="data">Keeping your log safe</h2>
+      <div class="card"><p>Your log is kept on your iPhone only. There is no account and no copy on a server, so if the phone is lost and you have no backup, the log is lost with it. Deleting FitLog from your iPhone deletes the log too.</p></div>
+      <h3>Save a backup file</h3>
+      <ol>
+        <li>Open Settings in FitLog and tap <kbd>Save</kbd> next to Save a backup.</li>
+        <li>Choose <kbd>Save to Files</kbd> and pick iCloud Drive, or send the file to yourself.</li>
+      </ol>
+      <p>The file holds everything: workouts, sets, notes, plans, your exercise library and your settings. FitLog reminds you when your last backup is more than a month old.</p>
+      <h3>Restore from a file</h3>
+      <ol>
+        <li>Open Settings and tap <kbd>Choose file</kbd> next to Restore from a file.</li>
+        <li>Pick the backup. FitLog shows what is in it before anything changes.</li>
+        <li>Tap <kbd>Restore</kbd>.</li>
+      </ol>
+      <p>Restoring adds the file's workouts to what is on the phone. Nothing you logged is removed, and nothing is added twice: a workout that is already on the phone is recognised, even if it arrived from a spreadsheet, and a backup fills in its notes and session times.</p>
+      <h3>Export a spreadsheet</h3>
+      <p><kbd>Export to CSV</kbd> makes a file with one row per set that opens in Numbers, Excel or Google Sheets. FitLog can also restore from this file, but a spreadsheet holds sets only. Use a backup file to keep notes, plans and session times.</p>
+      <h3>Erase everything</h3>
+      <p><kbd>Erase everything</kbd> in Settings removes every workout from the iPhone after you confirm. It cannot be undone.</p>
+
+      <h2 id="newphone">Moving to a new iPhone</h2>
+      <ol>
+        <li>On the old iPhone, save a backup file to iCloud Drive as described above. Do this even if you plan to transfer the whole phone.</li>
+        <li>Set up the new iPhone. If you transfer from the old iPhone or restore from an iCloud backup, FitLog and your log normally arrive with everything else.</li>
+        <li>Open FitLog on the new iPhone. If your workouts are there, you are done.</li>
+        <li>If they are not, install FitLog, open Settings, tap <kbd>Choose file</kbd>, and pick the backup from iCloud Drive.</li>
+      </ol>
+      <p>Keep the old iPhone as it is until you have seen your workouts on the new one.</p>
+
+      <footer>
+        FitLog is made by Abel Anand. <a href="guide.html">How to use</a> · <a href="privacy.html">Privacy policy</a> · <a href="support.html">Help and support</a>
+      </footer>
+    </main>
+    <script>
+      // An earlier version of this address was an installable web app. Remove what it left behind.
+      if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function (list) { list.forEach(function (r) { r.unregister() }) }).catch(function () {})
+    </script>
+  </body>
+</html>

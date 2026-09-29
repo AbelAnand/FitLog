@@ -23,6 +23,9 @@
 		CC05A6991D23A33252146288 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B0D82803C8CFE0AD191EDD6 /* WidgetKit.framework */; };
 		F64607CBEC3609FC6E8E0A9C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6294E638E12A8C18E5572542 /* Foundation.framework */; };
 		FFC0BF6628CB4A1DEBFD776E /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22DEC9CA6E49E218568C788D /* WidgetBridgePlugin.swift */; };
+		7A11F0022FF0000100A1B2C3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7A11F0012FF0000100A1B2C3 /* PrivacyInfo.xcprivacy */; };
+		7A11F0042FF0000100A1B2C3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7A11F0032FF0000100A1B2C3 /* PrivacyInfo.xcprivacy */; };
+		7A11F0062FF0000100A1B2C3 /* LocalStorePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11F0052FF0000100A1B2C3 /* LocalStorePlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +74,9 @@
 		A9A19ACC4701E34E142658B8 /* FitLogWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; name = FitLogWidget.appex; path = FitLogWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BECF9D824BC6C313AABD5071 /* FitLogViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FitLogViewController.swift; path = FitLogViewController.swift; sourceTree = "<group>"; };
 		FC2A44A8B4CF86E55CEA5B70 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
+		7A11F0012FF0000100A1B2C3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7A11F0032FF0000100A1B2C3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7A11F0052FF0000100A1B2C3 /* LocalStorePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStorePlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +115,7 @@
 				36A02B69DEA07F82E2796EE9 /* FitLogWidget.swift */,
 				2D1BCAAAB6E1CFF018A139E4 /* Info.plist */,
 				3F7D99CBBA9ADB99183BCA0E /* FitLogWidget.entitlements */,
+				7A11F0032FF0000100A1B2C3 /* PrivacyInfo.xcprivacy */,
 			);
 			name = FitLogWidget;
 			path = FitLogWidget;
@@ -147,8 +154,10 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				22DEC9CA6E49E218568C788D /* WidgetBridgePlugin.swift */,
+				7A11F0052FF0000100A1B2C3 /* LocalStorePlugin.swift */,
 				BECF9D824BC6C313AABD5071 /* FitLogViewController.swift */,
 				2B7A240F287538DABD221B47 /* App.entitlements */,
+				7A11F0012FF0000100A1B2C3 /* PrivacyInfo.xcprivacy */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -254,6 +263,7 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+				7A11F0022FF0000100A1B2C3 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -261,6 +271,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A11F0042FF0000100A1B2C3 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -274,6 +285,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				FFC0BF6628CB4A1DEBFD776E /* WidgetBridgePlugin.swift in Sources */,
+				7A11F0062FF0000100A1B2C3 /* LocalStorePlugin.swift in Sources */,
 				32007193B3176F1FF25781E6 /* FitLogViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
