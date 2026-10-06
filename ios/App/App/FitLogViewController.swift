@@ -5,7 +5,16 @@ import Capacitor
 class FitLogViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(WidgetBridgePlugin())
-        NSLog("FitLog: WidgetBridge plugin registered")
+        bridge?.registerPluginInstance(LocalStorePlugin())
+        bridge?.registerPluginInstance(BackGesturePlugin())
+        NSLog("FitLog: in-app plugins registered")
+
+        // The Start workout control runs its intent inside the app; hand it to the web app the same
+        // way a fitlog://start URL arrives (the App plugin keeps the event until a listener is ready).
+        NotificationCenter.default.addObserver(forName: .fitlogStartWorkout, object: nil, queue: .main) { [weak self] _ in
+            self?.deliverPendingStart()
+        }
+        deliverPendingStart()
 
         if let webView = bridge?.webView {
             // Swipe in from the left edge to go back, like every other iOS app.
@@ -14,7 +23,8 @@ class FitLogViewController: CAPBridgeViewController {
             webView.scrollView.keyboardDismissMode = .interactive
         }
 
-        // Test hooks (simulator only; launch environment variables cannot be set on user installs):
+        #if DEBUG
+        // Test hooks, compiled into debug builds only:
         //   SIMCTL_CHILD_FITLOG_ROUTE=/progress  opens a screen directly
         //   SIMCTL_CHILD_FITLOG_JS='window.scrollTo(0,600)'  runs a snippet after the route
         let env = ProcessInfo.processInfo.environment
@@ -29,5 +39,16 @@ class FitLogViewController: CAPBridgeViewController {
                 self?.bridge?.webView?.evaluateJavaScript(snippet, completionHandler: nil)
             }
         }
+        #endif
+    }
+
+    private func deliverPendingStart() {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: StartWorkoutRequest.pendingKey) else { return }
+        defaults.removeObject(forKey: StartWorkoutRequest.pendingKey)
+        guard let url = NSURL(string: "fitlog://start") else { return }
+        let payload: [String: Any?] = ["url": url, "options": [:]]
+        NotificationCenter.default.post(name: Notification.Name.capacitorOpenURL, object: payload)
+        NSLog("FitLog: start workout requested by a control")
     }
 }

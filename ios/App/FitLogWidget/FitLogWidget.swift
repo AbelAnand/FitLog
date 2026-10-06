@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
 
 // MARK: - Shared data (written by the app through WidgetBridgePlugin)
 
@@ -185,8 +186,8 @@ struct FitLogWidgetView: View {
     }
 }
 
-@main
-struct FitLogWidget: Widget {
+/// The streak widget. Its kind is unchanged so widgets already on a Home Screen keep working.
+struct StreakWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "FitLogWidget", provider: StreakProvider()) { entry in
             FitLogWidgetView(entry: entry)
@@ -194,6 +195,99 @@ struct FitLogWidget: Widget {
         .configurationDisplayName("Streak")
         .description("Your weekly streak, this week's training days, and a shortcut to start a workout.")
         .supportedFamilies([.systemSmall, .systemMedium])
-        .contentMarginsDisabled()
+    }
+}
+
+// MARK: - Start workout (Home Screen tile, Lock Screen widgets, iOS 18 control)
+
+struct StartEntry: TimelineEntry {
+    let date: Date
+}
+
+struct StartProvider: TimelineProvider {
+    func placeholder(in context: Context) -> StartEntry { StartEntry(date: .now) }
+    func getSnapshot(in context: Context, completion: @escaping (StartEntry) -> Void) { completion(StartEntry(date: .now)) }
+    func getTimeline(in context: Context, completion: @escaping (Timeline<StartEntry>) -> Void) {
+        completion(Timeline(entries: [StartEntry(date: .now)], policy: .never))
+    }
+}
+
+struct StartWorkoutView: View {
+    @Environment(\.widgetFamily) private var family
+    private let start = URL(string: "fitlog://start")!
+
+    var body: some View {
+        Group {
+            switch family {
+            case .accessoryCircular:
+                ZStack {
+                    AccessoryWidgetBackground()
+                    Image(systemName: "dumbbell.fill").font(.system(size: 22, weight: .semibold))
+                }
+                .widgetAccentable()
+                .containerBackground(for: .widget) { Color.clear }
+            case .accessoryRectangular:
+                HStack(spacing: 8) {
+                    Image(systemName: "dumbbell.fill").font(.system(size: 20, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Start workout").font(.system(size: 15, weight: .semibold))
+                        Text("FitLog").font(.system(size: 12)).opacity(0.7)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .widgetAccentable()
+                .containerBackground(for: .widget) { Color.clear }
+            default:
+                VStack(alignment: .leading, spacing: 0) {
+                    Image(systemName: "dumbbell.fill").font(.system(size: 26, weight: .semibold)).foregroundStyle(Theme.bg)
+                    Spacer(minLength: 0)
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus").font(.system(size: 14, weight: .bold))
+                        Text("Start").font(.system(size: 20, weight: .bold, design: .rounded))
+                    }
+                    .foregroundStyle(Theme.bg)
+                    Text("workout").font(.system(size: 16, weight: .semibold, design: .rounded)).foregroundStyle(Theme.bg.opacity(0.75))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .containerBackground(Theme.accent, for: .widget)
+            }
+        }
+        .widgetURL(start)
+    }
+}
+
+struct StartWorkoutWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "FitLogStart", provider: StartProvider()) { _ in
+            StartWorkoutView()
+        }
+        .configurationDisplayName("Start workout")
+        .description("One tap opens FitLog ready to start a workout. Works on the Home Screen and the Lock Screen.")
+        .supportedFamilies([.systemSmall, .accessoryCircular, .accessoryRectangular])
+    }
+}
+
+/// A control like the flashlight: add it to the Lock Screen corners or Control Center.
+@available(iOS 18.0, *)
+struct StartWorkoutControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "com.abelanand.fitlog.start") {
+            ControlWidgetButton(action: StartWorkoutIntent()) {
+                Label("Start workout", systemImage: "dumbbell.fill")
+            }
+        }
+        .displayName("Start workout")
+        .description("Opens FitLog ready to start a workout.")
+    }
+}
+
+@main
+struct FitLogWidgets: WidgetBundle {
+    var body: some Widget {
+        StreakWidget()
+        StartWorkoutWidget()
+        if #available(iOS 18.0, *) {
+            StartWorkoutControl()
+        }
     }
 }

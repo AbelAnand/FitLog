@@ -1,0 +1,21 @@
+/**
+ * Size limits. The database enforces the same numbers (see the hardening migration), so these exist
+ * to stop the input at the limit instead of letting a save be refused.
+ */
+export const LIMITS = {
+  workoutTitle: 120,
+  workoutNotes: 4000,
+  exerciseNotes: 2000,
+  exerciseName: 80,
+  drops: 20,
+  reps: 10000,
+} as const
+
+/** Why a save to the device failed, in words a person can act on. */
+export function explainSaveError(err: unknown): string {
+  const message = (err as { message?: string } | null)?.message ?? ''
+  if (/not found/i.test(message)) return 'That item no longer exists. Go back and open the workout again.'
+  if (/full|space|quota|disk/i.test(message)) return 'This iPhone is out of storage space. Free some up and try again.'
+  if (/built-in/i.test(message)) return message
+  return 'Close FitLog and open it again. Your earlier workouts are safe.'
+}

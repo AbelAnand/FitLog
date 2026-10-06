@@ -25,7 +25,8 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
 
   const startPlan = async () => {
     tap()
-    await session.startPlan()
+    // Opening the editor right after: wait for the server so it loads the started workout, not the plan.
+    if (!(await session.startPlan())) return
     if (isNative) {
       const s = await loadReminderSettings()
       if (s.gymEnabled) startGymSession(w.id, w.title)
@@ -40,7 +41,7 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
           type="button"
           {...press}
           onClick={() => nav(`/workout/${w.id}`)}
-          className={`w-full text-left flex items-center gap-3 bg-surface rounded-[18px] border p-3.5 active:bg-surface-2 select-none ${w.is_plan ? 'border-dashed border-faint/60' : 'border-border/60'}`}
+          className={`press-soft w-full text-left flex items-center gap-3 bg-surface rounded-[18px] border p-3.5 active:bg-surface-2 select-none ${w.is_plan ? 'border-dashed border-faint/60' : 'border-border/60'}`}
           style={{ WebkitTouchCallout: 'none' }}
         >
           <div className={`h-12 w-12 shrink-0 rounded-xl flex flex-col items-center justify-center leading-none ${w.is_plan ? 'bg-transparent border border-dashed border-faint/60' : 'bg-surface-2'}`}>
@@ -83,7 +84,7 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
         <p className="text-muted text-[14px] mb-4">{format(d, 'EEEE, MMM d')}. Its exercises and sets will be removed. This can't be undone.</p>
         <div className="flex gap-2">
           <Button variant="secondary" size="lg" className="flex-1" onClick={() => setConfirm(false)}>Cancel</Button>
-          <Button size="lg" className="flex-1 !bg-danger !text-white" disabled={del.isPending} onClick={async () => { await del.mutateAsync(w.id); setConfirm(false) }}>Delete</Button>
+          <Button size="lg" className="flex-1 !bg-danger !text-white" onClick={() => { setConfirm(false); del(w.id).catch(() => {}) }}>Delete</Button>
         </div>
       </Sheet>
     </>

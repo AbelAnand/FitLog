@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Help with FitLog: backups, moving to a new iPhone, records, streaks and reminders." />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <title>Help and support · FitLog</title>
+    <style>
+    :root { color-scheme: dark light; --bg:#0b0d10; --surface:#15181d; --text:#f2f4f7; --muted:#9aa2b0; --accent:#c6f135; --accent-ink:#0b0d10; --link:#c6f135; --border:#262b33; }
+    @media (prefers-color-scheme: light) { :root { --bg:#f6f7f9; --surface:#ffffff; --text:#111418; --muted:#5f6773; --link:#3d5a00; --border:#e3e6eb; } }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin:0; background:var(--bg); color:var(--text); font:17px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
+    header.top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:36px; flex-wrap:wrap; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color:var(--text); text-decoration:none; }
+    .mark { height:36px; width:36px; border-radius:10px; background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; }
+    nav { display:flex; gap:18px; flex-wrap:wrap; font-size:15px; }
+    nav a { color:var(--muted); text-decoration:none; }
+    nav a[aria-current="page"], nav a:hover { color:var(--text); }
+    h1 { font-size:34px; line-height:1.12; letter-spacing:-0.02em; margin:0 0 10px; }
+    h2 { font-size:22px; margin:40px 0 8px; letter-spacing:-0.01em; }
+    h3 { font-size:17px; margin:26px 0 4px; }
+    p, li { color:var(--text); }
+    .lead { font-size:19px; color:var(--muted); margin:0 0 8px; }
+    .muted { color:var(--muted); }
+    a { color:var(--link); }
+    ul, ol { padding-left:22px; }
+    li { margin:6px 0; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px 20px; margin:22px 0; }
+    .card p { margin:0; }
+    table { width:100%; border-collapse:collapse; font-size:15px; }
+    th, td { text-align:left; vertical-align:top; padding:10px 8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+    .scroll { overflow-x:auto; }
+    .shots { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin:28px 0; }
+    .shots img { width:100%; height:auto; border-radius:18px; border:1px solid var(--border); display:block; }
+    .toc { columns:2; column-gap:24px; padding-left:20px; font-size:15px; }
+    @media (max-width:520px) { .toc { columns:1; } h1 { font-size:29px; } }
+    kbd { font:600 14px/1 -apple-system,system-ui,sans-serif; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:3px 7px; white-space:nowrap; }
+    footer { margin-top:56px; padding-top:20px; border-top:1px solid var(--border); font-size:14px; color:var(--muted); }
+    footer a { color:var(--muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg></span>FitLog</a><nav aria-label="Pages"><a href="./">Overview</a><a href="guide.html">How to use</a><a href="privacy.html">Privacy</a><a href="support.html" aria-current="page">Support</a></nav></header>
+      <h1>Help and support</h1>
+      <p class="lead">Answers to common questions, and how to get in touch.</p>
+
+      <div class="card"><p><strong>Get in touch.</strong> Report a problem or ask a question on the <a href="https://github.com/AbelAnand/FitLog/issues">FitLog issue tracker</a>. Posts there are public, so leave out anything private. Say which iPhone and iOS version you use, and what you did just before the problem.</p></div>
+
+      <p>For a full walk-through of the app, see <a href="guide.html">How to use FitLog</a>.</p>
+
+      <h2>Your data</h2>
+      <h3>Where are my workouts stored?</h3>
+      <p>On your iPhone, inside the app. FitLog has no accounts and no server. See the <a href="privacy.html">privacy policy</a>.</p>
+      <h3>I got a new iPhone. How do I bring my workouts?</h3>
+      <p>Follow <a href="guide.html#newphone">Moving to a new iPhone</a>. In short: save a backup file on the old phone first, then restore it on the new one if the workouts did not arrive by themselves.</p>
+      <h3>I deleted FitLog, or lost my iPhone. Can my workouts be recovered?</h3>
+      <p>Only from a copy you made: a FitLog backup file, a spreadsheet export, or an iPhone backup from before the loss. The developer has no copy and cannot recover it for you.</p>
+      <h3>The restore says my file is not a FitLog backup</h3>
+      <p>Pick the file that FitLog saved, whose name starts with <em>fitlog-backup</em> and ends in <em>.json</em>, or a spreadsheet that FitLog exported, ending in <em>.csv</em>. Files that were edited by hand or made by another app may not be readable.</p>
+      <h3>How do I delete a set or a workout?</h3>
+      <p>Swipe it to the left. A short swipe shows a Delete button, and a long swipe deletes it straight away. You can also hold a workout to see its options.</p>
+      <h3>How do I delete everything?</h3>
+      <p>Open Settings, then <em>Erase everything</em>, and confirm.</p>
+
+      <h2>Using the app</h2>
+      <h3>How is a personal record decided?</h3>
+      <p>A set is marked PR when its weight is higher than the heaviest you have logged for that exercise in any earlier workout. Warm-up sets do not count.</p>
+      <h3>How does the streak work?</h3>
+      <p>A week counts when you train on at least as many different days as your weekly goal. Weeks run Monday to Sunday. You can change the goal in Settings.</p>
+      <h3>Reminders are not showing up</h3>
+      <p>Check that notifications are allowed in iPhone Settings, then Notifications, then FitLog, and that reminders are switched on in the app's Settings. A Focus mode can also silence them.</p>
+      <h3>The widget shows old numbers</h3>
+      <p>The widget updates when you open FitLog. Open the app once and return to the Home Screen.</p>
+      <h3>FitLog says it couldn't open my log</h3>
+      <p>Close FitLog completely and open it again. If the message returns, free up storage space on the iPhone and restart it. Your earlier workouts are still stored. If it keeps happening, get in touch before deleting the app, as deleting it removes the log.</p>
+
+      <h2>About FitLog</h2>
+      <h3>Is FitLog really free?</h3>
+      <p>Yes. There are no subscriptions, no ads and no locked features.</p>
+      <h3>Is there a version for Android or the web?</h3>
+      <p>No. FitLog is an iPhone app.</p>
+
+      <footer>
+        FitLog is made by Abel Anand. <a href="guide.html">How to use</a> · <a href="privacy.html">Privacy policy</a> · <a href="support.html">Help and support</a>
+      </footer>
+    </main>
+    <script>
+      // An earlier version of this address was an installable web app. Remove what it left behind.
+      if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function (list) { list.forEach(function (r) { r.unregister() }) }).catch(function () {})
+    </script>
+  </body>
+</html>

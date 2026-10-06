@@ -189,3 +189,62 @@
 .sheet-out { animation: sheet-out 200ms ease-in forwards; }
 .sheet-backdrop-in { animation: fade-in 200ms ease-out; }
 .sheet-backdrop-out { animation: fade-out 200ms ease-in forwards; }
+
+@keyframes toast-in { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+.toast-in { animation: toast-in 220ms cubic-bezier(.2,.8,.2,1); }
+
+/*
+ * ---- Motion ----
+ * Every action gets a short, physical response. To stay light on the phone:
+ *  - only `transform` and `opacity` are animated, which the graphics chip handles without
+ *    re-laying out the page (the one exception is `.collapsible`, a single row for under 0.2 s);
+ *  - nothing loops, and nothing runs while the app is idle;
+ *  - everything finishes within a third of a second;
+ *  - people who turn on Reduce Motion in iOS get none of it.
+ */
+:root {
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-back: cubic-bezier(.3, 1.4, .5, 1);
+}
+
+/* Pressing: the control gives a little under the finger. */
+.press, .press-soft {
+  transition: transform 140ms var(--ease-out), background-color 140ms ease-out, color 140ms ease-out, border-color 140ms ease-out, opacity 140ms ease-out, filter 140ms ease-out;
+}
+.press:active { transform: scale(.95); }
+.press-soft:active { transform: scale(.98); }
+
+/* Arriving: new things ease into place. */
+@keyframes rise-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes row-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { 0% { opacity: 0; transform: scale(.4); } 60% { opacity: 1; transform: scale(1.15); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.rise-in { animation: rise-in 260ms var(--ease-out) backwards; }
+.row-in { animation: row-in 200ms var(--ease-out) backwards; }
+.pop-in { animation: pop-in 320ms var(--ease-out) backwards; }
+.bump { animation: bump 260ms var(--ease-out); }
+.grow-x { transform-origin: left center; animation: grow-x 520ms var(--ease-out) backwards; }
+
+/* Moving between screens. Going deeper slides in from the right; tabs and going back fade. */
+@keyframes page-push { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes page-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes page-back { from { opacity: 0; } to { opacity: 1; } }
+.page-push { animation: page-push 260ms var(--ease-out) backwards; }
+.page-fade { animation: page-fade 220ms var(--ease-out) backwards; }
+.page-back { animation: page-back 180ms ease-out backwards; }
+
+/* Leaving: a removed row closes up instead of vanishing. */
+.collapsible { display: grid; grid-template-rows: 1fr; grid-template-columns: minmax(0, 1fr); transition: grid-template-rows 190ms var(--ease-out), opacity 150ms ease-out; }
+/* min-width: 0, like the minmax(0, …) column: otherwise one unbreakable line (a long last-session
+   hint) widens the grid past the screen, and iOS shrinks the whole page to fit it and zooms back
+   in on every focused field. */
+.collapsible > * { min-height: 0; min-width: 0; }
+.collapsible.leaving { grid-template-rows: 0fr; opacity: 0; pointer-events: none; }
+.collapsible.leaving > * { overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .press, .press-soft, .collapsible { transition: none; }
+  .press:active, .press-soft:active { transform: none; }
+  .rise-in, .row-in, .pop-in, .bump, .grow-x, .page-push, .page-fade, .page-back, .sheet-in, .sheet-out, .sheet-backdrop-in, .sheet-backdrop-out, .toast-in { animation: none; }
+}

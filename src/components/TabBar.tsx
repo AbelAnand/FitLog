@@ -17,10 +17,14 @@ export function TabBar() {
             key={t.to}
             to={t.to}
             end={t.to === '/'}
-            className={({ isActive }) => `flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition ${isActive ? 'text-accent' : 'text-faint'}`}
+            className={({ isActive }) => `press flex flex-col items-center justify-center gap-1 text-[11px] font-medium ${isActive ? 'text-accent' : 'text-faint'}`}
           >
-            <t.icon />
-            {t.label}
+            {({ isActive }) => (
+              <>
+                <span className={isActive ? 'bump' : ''}><t.icon /></span>
+                {t.label}
+              </>
+            )}
           </NavLink>
         ))}
       </div>

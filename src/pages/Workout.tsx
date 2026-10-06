@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate, useNavigationType, useParams } from 'react-router'
+import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { useAllSets, useProfile, useWorkout, useWorkouts } from '../api/queries'
-import { deleteWorkoutById, invalidateAll, useAddExercise, useAddSets, useDeleteSet, useDeleteWorkout, useRemoveExercise, useRepeatLast, useReplaceSets, useSessionControls, useUpdateExercise, useUpdateSets, useUpdateWorkout, useUpdateWorkoutExercise } from '../api/mutations'
+import { deleteWorkout, discardHeld, editorOpen, editsQuiet, saveHeld, useAddExercise, useAddSets, useDeleteSet, useRemoveExercise, useRepeatLast, useReplaceSets, useSessionControls, useUpdateExercise, useUpdateSets, useUpdateWorkout, useUpdateWorkoutExercise, writeHeld } from '../api/mutations'
+import { editKey, keys } from '../api/keys'
+import { heldCount, holdWrites, stopHolding, useHeldCount } from '../api/hold'
 import type { WorkoutDetail } from '../api/types'
 import { ExerciseCard, type LastSession } from '../components/ExerciseCard'
 import { ExercisePicker } from '../components/ExercisePicker'
@@ -11,15 +13,17 @@ import { SessionSheet } from '../components/SessionSheet'
 import { Button, Icon, MenuSheet, Sheet, Spinner } from '../components/ui'
 import { bestByExercise } from '../lib/prs'
 import { formatClock, formatSessionLength, isLiveSession, useElapsed } from '../lib/duration'
-import { isNative } from '../lib/native'
+import { isNative, setBackGesture } from '../lib/native'
 import { getGymSession, loadReminderSettings, startGymSession, stopGymSession } from '../lib/notifications'
 import { tap } from '../lib/haptics'
+import { useArrivals, useArrived, useLeaving } from '../lib/motion'
+import { LIMITS } from '../data/limits'
 
 export function WorkoutPage() {
   const { id = '' } = useParams()
   const nav = useNavigate()
   const qc = useQueryClient()
-  const { data: workout, isLoading, error } = useWorkout(id)
+  const { data: workout, isLoading } = useWorkout(id)
   const { data: profile } = useProfile()
   const { data: allSets = [] } = useAllSets()
   const { data: workouts = [] } = useWorkouts()
@@ -28,7 +32,6 @@ export function WorkoutPage() {
 
   const updateWorkout = useUpdateWorkout(id)
   const session = useSessionControls(id)
-  const deleteWorkout = useDeleteWorkout()
   const addExercise = useAddExercise(id)
   const updateWorkoutExercise = useUpdateWorkoutExercise(id)
   const updateExercise = useUpdateExercise(id)
@@ -38,6 +41,31 @@ export function WorkoutPage() {
   const replaceSets = useReplaceSets(id)
   const deleteSet = useDeleteSet(id)
   const repeatLast = useRepeatLast(id)
+
+  // A finished workout or a plan opens for editing: every change shows at once but is written
+  // only on Save. A live session keeps saving as it goes, so nothing is lost if the phone locks.
+  const editing = !!workout && (workout.is_plan || !!workout.finished_at)
+  const dirty = useHeldCount(id) > 0
+  useEffect(() => {
+    if (!editing) return
+    holdWrites(id)
+    return () => {
+      // Leaving edit mode (Resume or Start, or the screen closing some other way): write what is still held.
+      writeHeld(qc, id, stopHolding(id))
+    }
+  }, [editing, id, qc])
+  // With unsaved changes, the edge swipe would leave without asking; the back button asks instead.
+  useEffect(() => {
+    if (!dirty) return
+    setBackGesture(false)
+    return () => { setBackGesture(true) }
+  }, [dirty])
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [savingHeld, setSavingHeld] = useState(false)
+
+  const navType = useNavigationType()
+  const arrivals = useArrivals(!!workout)
+  const { leaving, leave: removeCard } = useLeaving((weId) => removeExercise.mutate(weId))
 
   const [picker, setPicker] = useState(false)
   const [menu, setMenu] = useState(false)
@@ -65,19 +93,55 @@ export function WorkoutPage() {
     if (timers.current[key]) window.clearTimeout(timers.current[key])
     timers.current[key] = window.setTimeout(() => updateWorkout.mutate({ [key]: value }), 500)
   }
+  /** Commit what is still being typed (fields commit a moment after the last keystroke) and let it register. */
+  const settleEdits = async () => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    for (const key of ['title', 'notes'] as const) {
+      if (!timers.current[key]) continue
+      window.clearTimeout(timers.current[key])
+      timers.current[key] = undefined
+      updateWorkout.mutate({ [key]: key === 'title' ? title : notes })
+    }
+    await editsQuiet(qc, id)
+  }
+  const save = async (): Promise<boolean> => {
+    setSavingHeld(true)
+    await settleEdits()
+    const ok = await saveHeld(qc, id)
+    setSavingHeld(false)
+    return ok
+  }
+  const leave = async () => {
+    await settleEdits()
+    if (heldCount(id) > 0) setConfirmLeave(true)
+    else nav(-1)
+  }
+  const saveAndLeave = async () => {
+    if (!(await save())) return
+    setConfirmLeave(false)
+    nav(-1)
+  }
+  const discardAndLeave = async () => {
+    await discardHeld(qc, id)
+    setConfirmLeave(false)
+    nav(-1)
+  }
 
   // A workout (or plan) that never got an exercise is discarded when you leave it.
-  const latest = useRef<WorkoutDetail | undefined>(undefined)
-  latest.current = workout
+  const discarded = useRef(false)
   useEffect(() => {
     return () => {
-      const w = latest.current
-      if (w && w.exercises.length === 0) {
-        deleteWorkoutById(w.id).then(() => invalidateAll(qc)).catch(() => {})
-        stopGymSession()
-      }
+      // Checked a tick later so a remount of the same screen doesn't count as leaving.
+      window.setTimeout(() => {
+        if (discarded.current || editorOpen(qc, id)) return
+        const w = qc.getQueryData<WorkoutDetail>(keys.workout(id))
+        if (w && w.exercises.length === 0) {
+          deleteWorkout(qc, id).catch(() => {})
+          stopGymSession()
+        }
+      }, 0)
     }
-  }, [qc])
+  }, [qc, id])
 
   const prevBest = useMemo(() => bestByExercise(allSets, id), [allSets, id])
 
@@ -103,9 +167,10 @@ export function WorkoutPage() {
   const live = !!workout && isLiveSession(workout)
   const paused = !!workout?.paused_at
   const elapsed = useElapsed(workout, live && !paused)
+  const saving = useIsMutating({ mutationKey: editKey(id) }) > 0
 
-  if (isLoading) return <Spinner className="pt-32" />
-  if (error || !workout) {
+  if (!workout && isLoading) return <Spinner className="pt-32" />
+  if (!workout) {
     return (
       <main className="mx-auto max-w-lg px-4 pt-safe">
         <div className="pt-20 text-center text-muted">Workout not found.</div>
@@ -115,34 +180,40 @@ export function WorkoutPage() {
   }
 
   const plan = workout.is_plan
-  const saving = updateWorkout.isPending || updateSets.isPending || addSets.isPending || replaceSets.isPending || updateWorkoutExercise.isPending
   const finished = !!workout.finished_at
   const sessionLength = formatSessionLength(workout)
   const plannedExercises = workout.exercises.filter((we) => we.planned)
   const doneCount = plannedExercises.filter((we) => we.completed_at).length
 
-  const finish = async () => {
+  const gymIfEnabled = async () => {
+    if (!isNative) return
+    const s = await loadReminderSettings()
+    if (s.gymEnabled) {
+      await startGymSession(id, workout.title)
+      setGymActive(true)
+    }
+  }
+
+  // None of these wait for the network: the change shows at once and is saved in the background.
+  const finish = () => {
     setSessionSheet(false)
-    await session.finish(workout)
-    await stopGymSession()
+    session.finish(workout)
+    stopGymSession()
     setGymActive(false)
     nav('/', { replace: true })
   }
 
+  // Resume and Start leave edit mode, so the edits are saved first.
   const reopen = async () => {
-    await session.reopen(workout)
+    if (!(await save())) return
+    session.reopen(workout)
   }
 
   const startPlan = async () => {
     tap()
-    await session.startPlan()
-    if (isNative) {
-      const s = await loadReminderSettings()
-      if (s.gymEnabled) {
-        await startGymSession(id, workout.title)
-        setGymActive(true)
-      }
-    }
+    if (!(await save())) return
+    session.startPlan()
+    gymIfEnabled()
   }
 
   const toggleGym = async (on: boolean) => {
@@ -151,26 +222,28 @@ export function WorkoutPage() {
     setGymActive(on)
   }
 
-  const pause = async () => {
-    await session.pause()
-    await stopGymSession()
+  const pause = () => {
+    session.pause()
+    stopGymSession()
     setGymActive(false)
   }
-  const resume = async () => {
-    await session.resume(workout)
-    if (isNative) {
-      const s = await loadReminderSettings()
-      if (s.gymEnabled) {
-        await startGymSession(id, workout.title)
-        setGymActive(true)
-      }
-    }
+  const resume = () => {
+    session.resume(workout)
+    gymIfEnabled()
+  }
+
+  const remove = () => {
+    discarded.current = true
+    stopHolding(id)
+    deleteWorkout(qc, id).catch(() => {})
+    stopGymSession()
+    nav('/', { replace: true })
   }
 
   return (
-    <main className="mx-auto max-w-lg px-4 pb-safe">
+    <main className={`mx-auto max-w-lg px-4 pb-safe ${navType === 'POP' ? 'page-back' : 'page-push'}`}>
       <div className="sticky top-0 z-30 -mx-4 px-4 pb-2 bg-bg/90 backdrop-blur-xl flex items-center justify-between" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
-        <button type="button" aria-label="Back" onClick={() => nav(-1)} className="-ml-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.Back /></button>
+        <button type="button" aria-label="Back" onClick={leave} className="press -ml-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.Back /></button>
         <div className="flex items-center gap-2 text-[13px] text-faint">
           {plan && (
             <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-semibold bg-surface-2 text-muted">
@@ -181,7 +254,7 @@ export function WorkoutPage() {
             <button
               type="button"
               onClick={() => { tap(); setSessionSheet(true) }}
-              className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[15px] font-semibold tabular active:brightness-110 ${
+              className={`press inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[15px] font-semibold tabular active:brightness-110 ${
                 paused ? 'bg-surface-2 text-muted' : gymActive ? 'bg-accent-dim text-accent' : 'bg-surface-2 text-text'
               }`}
               aria-label="Session controls"
@@ -190,15 +263,22 @@ export function WorkoutPage() {
               {formatClock(elapsed)}
             </button>
           )}
-          <span>{saving ? 'Saving…' : 'Saved'}</span>
+          {editing && dirty ? (
+            <Button size="sm" onClick={save} disabled={savingHeld} aria-label="Save changes">
+              <Icon.Check /> Save
+            </Button>
+          ) : (
+            <span>{saving ? 'Saving…' : 'Saved'}</span>
+          )}
         </div>
-        <button type="button" aria-label="More" onClick={() => setMenu(true)} className="-mr-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.More /></button>
+        <button type="button" aria-label="More" onClick={() => setMenu(true)} className="press -mr-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.More /></button>
       </div>
 
       <input
         value={title}
         onChange={(e) => { setTitle(e.target.value); debounced('title', e.target.value) }}
         placeholder="Workout title"
+        maxLength={LIMITS.workoutTitle}
         className="page-title w-full bg-transparent text-[30px] outline-none placeholder:text-faint mt-1"
         aria-label="Workout title"
       />
@@ -229,7 +309,7 @@ export function WorkoutPage() {
           type="button"
           disabled={repeatLast.isPending}
           onClick={() => repeatLast.mutate({ sourceWorkoutId: previousSameTitle.id, planned: plan })}
-          className="w-full flex items-center gap-3 rounded-[18px] bg-accent-dim border border-accent/30 p-4 mb-4 text-left active:brightness-110 disabled:opacity-60"
+          className="press-soft w-full flex items-center gap-3 rounded-[18px] bg-accent-dim border border-accent/30 p-4 mb-4 text-left active:brightness-110 disabled:opacity-60"
         >
           <span className="text-accent"><Icon.Repeat /></span>
           <div className="min-w-0">
@@ -239,10 +319,10 @@ export function WorkoutPage() {
         </button>
       )}
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col">
         {workout.exercises.map((we) => (
+          <ArrivingCard key={we.id} loaded={arrivals} leaving={leaving.has(we.id)}>
           <ExerciseCard
-            key={we.id}
             we={we}
             unit={unit}
             distanceUnit={distanceUnit}
@@ -256,12 +336,13 @@ export function WorkoutPage() {
             onNotes={(n) => updateWorkoutExercise.mutate({ workoutExerciseId: we.id, patch: { notes: n } })}
             onComplete={(done) => updateWorkoutExercise.mutate({ workoutExerciseId: we.id, patch: { completed_at: done ? new Date().toISOString() : null } })}
             onMetrics={(metrics) => updateExercise.mutate({ exerciseId: we.exercise_id, patch: { metrics, track_incline: metrics.includes('incline') } })}
-            onRemove={() => removeExercise.mutate(we.id)}
+            onRemove={() => removeCard(we.id)}
           />
+          </ArrivingCard>
         ))}
       </div>
 
-      <Button variant="secondary" size="lg" className="w-full mt-3" onClick={() => setPicker(true)} disabled={addExercise.isPending}>
+      <Button variant="secondary" size="lg" className="w-full" onClick={() => setPicker(true)}>
         <Icon.Plus /> Add exercise
       </Button>
 
@@ -270,12 +351,13 @@ export function WorkoutPage() {
         onChange={(e) => { setNotes(e.target.value); debounced('notes', e.target.value) }}
         placeholder={plan ? 'Plan notes — focus, targets, anything to remember…' : 'Workout notes — how did it feel, anything to remember next time…'}
         rows={3}
+        maxLength={LIMITS.workoutNotes}
         className="w-full mt-6 px-4 py-3 rounded-[18px] bg-surface border border-border/60 outline-none focus:border-accent/60 placeholder:text-faint resize-none text-[15px]"
         aria-label="Workout notes"
       />
 
       {plan && workout.exercises.length > 0 && (
-        <Button size="lg" className="w-full mt-4 mb-10" disabled={session.isPending} onClick={startPlan}>
+        <Button size="lg" className="w-full mt-4 mb-10" onClick={startPlan}>
           <Icon.Play /> Start this workout
         </Button>
       )}
@@ -290,7 +372,7 @@ export function WorkoutPage() {
         open={picker}
         onClose={() => setPicker(false)}
         workoutTitle={title}
-        onPick={(name, kind, _id, trackIncline) => addExercise.mutate({ name, kind, trackIncline, position: workout.exercises.length, unit, distanceUnit, planned: plan })}
+        onPick={(name, kind, exerciseId, trackIncline) => addExercise.mutate({ name, kind, exerciseId, trackIncline, position: (workout.exercises.at(-1)?.position ?? -1) + 1, unit, distanceUnit, planned: plan })}
       />
 
       <SessionSheet
@@ -303,7 +385,7 @@ export function WorkoutPage() {
         onPause={pause}
         onResume={resume}
         onFinish={finish}
-        busy={session.isPending}
+        busy={false}
       />
 
       <MenuSheet
@@ -320,13 +402,32 @@ export function WorkoutPage() {
         ]}
       />
 
+      <Sheet open={confirmLeave} onClose={() => setConfirmLeave(false)} title="Save your changes?">
+        <p className="text-muted text-[14px] mb-4">This {plan ? 'plan' : 'workout'} has changes that haven't been saved.</p>
+        <div className="flex flex-col gap-2">
+          <Button size="lg" onClick={saveAndLeave} disabled={savingHeld}><Icon.Check /> Save</Button>
+          <Button variant="secondary" size="lg" className="!text-danger" onClick={discardAndLeave} disabled={savingHeld}>Discard changes</Button>
+          <Button variant="ghost" size="lg" onClick={() => setConfirmLeave(false)}>Keep editing</Button>
+        </div>
+      </Sheet>
+
       <Sheet open={confirmDelete} onClose={() => setConfirmDelete(false)} title={plan ? 'Delete this plan?' : 'Delete this workout?'}>
         <p className="text-muted text-[14px] mb-4">All its exercises and sets will be removed. This can't be undone.</p>
         <div className="flex gap-2">
           <Button variant="secondary" size="lg" className="flex-1" onClick={() => setConfirmDelete(false)}>Cancel</Button>
-          <Button size="lg" className="flex-1 !bg-danger !text-white" onClick={async () => { latest.current = undefined; await deleteWorkout.mutateAsync(id); await stopGymSession(); nav('/', { replace: true }) }}>Delete</Button>
+          <Button size="lg" className="flex-1 !bg-danger !text-white" onClick={remove}>Delete</Button>
         </div>
       </Sheet>
     </main>
+  )
+}
+
+/** An exercise card: eases in if it was added while you watched, closes up when removed. */
+function ArrivingCard({ loaded, leaving, children }: { loaded: React.RefObject<boolean>; leaving: boolean; children: React.ReactNode }) {
+  const arrived = useArrived(loaded)
+  return (
+    <div className={`collapsible ${leaving ? 'leaving' : ''}`}>
+      <div className={`pb-3 ${arrived ? 'rise-in' : ''}`}>{children}</div>
+    </div>
   )
 }

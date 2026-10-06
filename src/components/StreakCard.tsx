@@ -27,7 +27,7 @@ export function StreakCard({ info }: { info: StreakInfo }) {
       </div>
 
       <div className="mt-4 h-1.5 rounded-full bg-surface-3 overflow-hidden">
-        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${pct * 100}%` }} />
+        <div className="grow-x h-full rounded-full bg-accent" style={{ width: `${pct * 100}%` }} />
       </div>
 
       <div className="mt-4 grid grid-cols-7 gap-1.5">
@@ -35,7 +35,7 @@ export function StreakCard({ info }: { info: StreakInfo }) {
           <div key={d.label + d.date.getDate()} className="flex flex-col items-center gap-1.5">
             <div
               className={`h-8 w-8 rounded-full flex items-center justify-center text-[12px] font-semibold ${
-                d.trained ? 'bg-accent text-accent-ink' : d.isFuture ? 'bg-transparent border border-border text-faint' : 'bg-surface-2 text-muted'
+                d.trained ? 'pop-in bg-accent text-accent-ink' : d.isFuture ? 'bg-transparent border border-border text-faint' : 'bg-surface-2 text-muted'
               } ${d.isToday && !d.trained ? 'ring-2 ring-accent/60' : ''}`}
             >
               {d.trained ? '✓' : d.date.getDate()}
