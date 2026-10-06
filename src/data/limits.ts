@@ -17,5 +17,5 @@ export function explainSaveError(err: unknown): string {
   if (/not found/i.test(message)) return 'That item no longer exists. Go back and open the workout again.'
   if (/full|space|quota|disk/i.test(message)) return 'This iPhone is out of storage space. Free some up and try again.'
   if (/built-in/i.test(message)) return message
-  return 'Close FitLog and open it again. Your earlier workouts are safe.'
+  return 'Close SplitLog and open it again. Your earlier workouts are safe.'
 }

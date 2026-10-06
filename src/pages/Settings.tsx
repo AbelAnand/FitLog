@@ -56,7 +56,7 @@ export function SettingsPage() {
     if (picker.current) picker.current.value = ''
     if (!file) return
     try {
-      if (file.size > MAX_FILE_BYTES) throw new UnreadableFile('This file is too large to be a FitLog backup.')
+      if (file.size > MAX_FILE_BYTES) throw new UnreadableFile('This file is too large to be a SplitLog backup.')
       const read = readImportFile(await file.text())
       const { summary } = db.planImport(read.file, read.kind)
       if (!summary.workouts && !summary.sets && !summary.sameWorkouts) throw new UnreadableFile('There are no workouts in this file.')
@@ -197,19 +197,19 @@ export function SettingsPage() {
             <Stepper value={rem.gymIntervalMin} min={5} max={60} onChange={(v) => saveRem({ gymIntervalMin: v })} suffix=" min" />
           </Row>
         )}
-        {permDenied && <div className="px-4 py-3 text-[13px] text-danger">Notifications are off for FitLog. Enable them in iPhone Settings → Notifications → FitLog.</div>}
+        {permDenied && <div className="px-4 py-3 text-[13px] text-danger">Notifications are off for SplitLog. Enable them in iPhone Settings → Notifications → SplitLog.</div>}
       </Section>
 
       <Section title="Your data">
         <div className="px-4 py-3 text-[13px] text-muted leading-relaxed">
-          Your log is kept on this iPhone and nowhere else. It is part of your iPhone's own backups, so it comes with you to a new iPhone. Save a backup file as well, in case this phone is lost or FitLog is deleted.
+          Your log is kept on this iPhone and nowhere else. It is part of your iPhone's own backups, so it comes with you to a new iPhone. Save a backup file as well, in case this phone is lost or SplitLog is deleted.
         </div>
         <Row label="Save a backup" hint={lastBackup ? `Last saved ${lastBackup}` : backup?.workouts ? 'Never saved' : 'Nothing to save yet'}>
           <Button variant="secondary" size="sm" disabled={busy !== null || !backup?.workouts} onClick={saveBackup}>
             <Icon.Share /> {busy === 'backup' ? 'Saving…' : 'Save'}
           </Button>
         </Row>
-        <Row label="Restore from a file" hint="A FitLog backup or spreadsheet export">
+        <Row label="Restore from a file" hint="A SplitLog backup or spreadsheet export">
           <Button variant="secondary" size="sm" disabled={busy !== null} onClick={() => picker.current?.click()}>Choose file</Button>
           <input ref={picker} type="file" accept=".json,.csv,application/json,text/csv,text/comma-separated-values,public.json,public.comma-separated-values-text" className="hidden" onChange={(e) => chooseFile(e.target.files?.[0])} aria-label="Choose a backup file" />
         </Row>
@@ -234,7 +234,7 @@ export function SettingsPage() {
       </Section>
 
       <Section title="About">
-        <LinkRow label="How to use FitLog" onClick={() => openExternal(GUIDE_URL)} />
+        <LinkRow label="How to use SplitLog" onClick={() => openExternal(GUIDE_URL)} />
         <LinkRow label="Privacy policy" onClick={() => openExternal(PRIVACY_URL)} />
         <LinkRow label="Help and support" onClick={() => openExternal(SUPPORT_URL)} />
       </Section>

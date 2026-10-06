@@ -22,7 +22,7 @@ export function serializeBackup(file: BackupFile): string {
 function list(v: unknown, what: string): unknown[] {
   if (v == null) return []
   if (!Array.isArray(v)) throw new UnreadableFile(`This backup is damaged: its ${what} are not a list.`)
-  if (v.length > MAX_RECORDS) throw new UnreadableFile(`This backup has too many ${what} to be a FitLog backup.`)
+  if (v.length > MAX_RECORDS) throw new UnreadableFile(`This backup has too many ${what} to be a SplitLog backup.`)
   return v
 }
 
@@ -31,12 +31,12 @@ export function parseBackup(text: string): BackupFile {
   try {
     raw = JSON.parse(text)
   } catch {
-    throw new UnreadableFile('This file is not a FitLog backup. It could not be read.')
+    throw new UnreadableFile('This file is not a SplitLog backup. It could not be read.')
   }
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new UnreadableFile('This file is not a FitLog backup.')
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new UnreadableFile('This file is not a SplitLog backup.')
   const r = raw as Record<string, unknown>
-  if (r.app !== 'FitLog') throw new UnreadableFile('This file is not a FitLog backup.')
-  if (r.format !== 1) throw new UnreadableFile('This backup was made by a newer version of FitLog. Update the app, then try again.')
+  if (r.app !== 'FitLog') throw new UnreadableFile('This file is not a SplitLog backup.')
+  if (r.format !== 1) throw new UnreadableFile('This backup was made by a newer version of SplitLog. Update the app, then try again.')
   // Records are checked one by one when they are imported; here only the outline is.
   return {
     app: 'FitLog',
@@ -106,11 +106,11 @@ const EXTRA_COLUMNS: Record<string, MetricKey> = { speed: 'speed', level: 'level
 export function parseCsv(text: string): BackupFile {
   const rows = parseCsvRows(text)
   if (rows.length < 2) throw new UnreadableFile('This spreadsheet has no workouts in it.')
-  if (rows.length > MAX_RECORDS) throw new UnreadableFile('This spreadsheet is too large to be a FitLog export.')
+  if (rows.length > MAX_RECORDS) throw new UnreadableFile('This spreadsheet is too large to be a SplitLog export.')
   const header = rows[0].map((h) => h.trim().toLowerCase())
   const col = (name: string) => header.indexOf(name)
   for (const needed of ['date', 'workout', 'exercise', 'set']) {
-    if (col(needed) < 0) throw new UnreadableFile(`This spreadsheet is not a FitLog export: the "${needed}" column is missing.`)
+    if (col(needed) < 0) throw new UnreadableFile(`This spreadsheet is not a SplitLog export: the "${needed}" column is missing.`)
   }
   const get = (r: string[], name: string) => (col(name) >= 0 ? (r[col(name)] ?? '').trim() : '')
   const number = (s: string) => (s === '' || !Number.isFinite(Number(s)) ? null : Number(s))
@@ -218,9 +218,9 @@ export interface ReadFile {
 
 /** Work out what kind of file this is from its contents, not its name. */
 export function readImportFile(text: string): ReadFile {
-  if (text.length > MAX_FILE_BYTES) throw new UnreadableFile('This file is too large to be a FitLog backup.')
+  if (text.length > MAX_FILE_BYTES) throw new UnreadableFile('This file is too large to be a SplitLog backup.')
   const start = text.replace(/^﻿/, '').trimStart()
   if (start.startsWith('{')) return { file: parseBackup(text), kind: 'backup' }
   if (/^"?date"?\s*,/i.test(start)) return { file: parseCsv(text), kind: 'spreadsheet' }
-  throw new UnreadableFile('This file is not a FitLog backup or a FitLog spreadsheet export.')
+  throw new UnreadableFile('This file is not a SplitLog backup or a SplitLog spreadsheet export.')
 }

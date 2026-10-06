@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content="How to use FitLog: logging workouts, records, streaks, reminders, backups, and moving to a new iPhone." />
+    <meta name="description" content="How to use SplitLog: logging workouts, records, streaks, reminders, backups, and moving to a new iPhone." />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <title>How to use · FitLog</title>
+    <title>How to use · SplitLog</title>
     <style>
     :root { color-scheme: dark light; --bg:#0b0d10; --surface:#15181d; --text:#f2f4f7; --muted:#9aa2b0; --accent:#c6f135; --accent-ink:#0b0d10; --link:#c6f135; --border:#262b33; }
     @media (prefers-color-scheme: light) { :root { --bg:#f6f7f9; --surface:#ffffff; --text:#111418; --muted:#5f6773; --link:#3d5a00; --border:#e3e6eb; } }
@@ -42,13 +42,23 @@
     kbd { font:600 14px/1 -apple-system,system-ui,sans-serif; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:3px 7px; white-space:nowrap; }
     footer { margin-top:56px; padding-top:20px; border-top:1px solid var(--border); font-size:14px; color:var(--muted); }
     footer a { color:var(--muted); }
-    </style>
+      .fig { margin:14px 0 24px; }
+    .fig .wrap { position:relative; display:inline-block; max-width:100%; line-height:0; }
+    .fig img { display:block; width:100%; max-width:320px; height:auto; border-radius:26px; border:1px solid var(--border); }
+    .pin { position:absolute; transform:translate(-50%,-50%); width:26px; height:26px; border-radius:50%; background:var(--accent); color:var(--accent-ink); font:700 13px/26px -apple-system,system-ui,sans-serif; text-align:center; box-shadow:0 0 0 3px rgba(198,241,53,.35), 0 2px 8px rgba(0,0,0,.45); pointer-events:none; }
+    .fig figcaption { font-size:14px; line-height:1.5; color:var(--muted); margin-top:10px; max-width:320px; }
+    .fig figcaption b { color:var(--text); font-weight:700; margin-left:6px; }
+    .fig figcaption b:first-child { margin-left:0; }
+    .figs { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+    h2 { clear:both; }
+    @media (min-width:720px) { .fig.side { float:right; width:280px; margin:4px 0 18px 28px; } .fig.side img, .fig.side figcaption { max-width:280px; } }
+  </style>
   </head>
   <body>
     <main>
-      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg></span>FitLog</a><nav aria-label="Pages"><a href="./">Overview</a><a href="guide.html" aria-current="page">How to use</a><a href="privacy.html">Privacy</a><a href="support.html">Support</a></nav></header>
-      <h1>How to use FitLog</h1>
-      <p class="lead">Everything the app does, in the order you are likely to need it.</p>
+      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 100 100" fill="currentColor" stroke="currentColor" aria-hidden="true"><line x1="14" y1="22" x2="86" y2="22" stroke-width="5.2" stroke-linecap="round"/><rect x="18.5" y="13.5" width="6.6" height="17.0" rx="1.6"/><rect x="74.9" y="13.5" width="6.6" height="17.0" rx="1.6"/><rect x="25.1" y="11.5" width="6.6" height="21.0" rx="1.6"/><rect x="68.3" y="11.5" width="6.6" height="21.0" rx="1.6"/><rect x="31.7" y="9.5" width="6.6" height="25.0" rx="1.6"/><rect x="61.7" y="9.5" width="6.6" height="25.0" rx="1.6"/><line x1="14" y1="50" x2="86" y2="50" stroke-width="5.2" stroke-linecap="round"/><rect x="18.5" y="43.0" width="6.2" height="14.0" rx="1.6"/><rect x="75.3" y="43.0" width="6.2" height="14.0" rx="1.6"/><rect x="24.7" y="41.2" width="6.2" height="17.5" rx="1.6"/><rect x="69.1" y="41.2" width="6.2" height="17.5" rx="1.6"/><line x1="14" y1="78" x2="86" y2="78" stroke-width="5.2" stroke-linecap="round"/><rect x="18.5" y="72.8" width="6.2" height="10.5" rx="1.6"/><rect x="75.3" y="72.8" width="6.2" height="10.5" rx="1.6"/></svg></span>SplitLog</a><nav aria-label="Pages"><a href="./">Overview</a><a href="guide.html" aria-current="page">How to use</a><a href="privacy.html">Privacy</a><a href="support.html">Support</a></nav></header>
+      <h1>How to use SplitLog</h1>
+      <p class="lead">Everything the app does, in the order you are likely to need it. The numbered dots on each screenshot mark what to tap.</p>
 
       <ul class="toc">
         <li><a href="#start">Start a workout</a></li>
@@ -69,6 +79,7 @@
       </ul>
 
       <h2 id="start">Start a workout</h2>
+      <div class="figs"><figure class="fig"><div class="wrap"><img src="img/guide-01-home.jpg" alt="The Home screen" width="660" height="1434" loading="lazy" /><span class="pin" style="left:40.91%;top:41.74%">1</span><span class="pin" style="left:88.18%;top:41.74%">2</span><span class="pin" style="left:50%;top:26.41%">3</span><span class="pin" style="left:50%;top:55.96%">4</span></div><figcaption><b>①</b> Start workout <b>②</b> Plan a workout <b>③</b> Streak card <b>④</b> Recent workout</figcaption></figure><figure class="fig"><div class="wrap"><img src="img/guide-02-start-sheet.jpg" alt="The Start a workout sheet" width="660" height="1434" loading="lazy" /><span class="pin" style="left:40.37%;top:66.53%">1</span><span class="pin" style="left:79.2%;top:73.85%">2</span><span class="pin" style="left:11.91%;top:80.75%">3</span><span class="pin" style="left:40.48%;top:91.42%">4</span><span class="pin" style="left:86.85%;top:91.42%">5</span></div><figcaption><b>①</b> Plan for later <b>②</b> Date <b>③</b> Push chip <b>④</b> Custom title <b>⑤</b> Start</figcaption></figure></div>
       <ol>
         <li>On Home, tap <kbd>Start workout</kbd>.</li>
         <li>Tap a title such as Push or Legs, or type your own and tap <kbd>Start</kbd>.</li>
@@ -77,6 +88,7 @@
       <p>A workout you leave without adding any exercise is discarded.</p>
 
       <h2 id="exercises">Add exercises</h2>
+      <figure class="fig side"><div class="wrap"><img src="img/guide-06-picker.jpg" alt="The Add exercise list" width="660" height="1434" loading="lazy" /><span class="pin" style="left:50%;top:15.99%">1</span><span class="pin" style="left:35.91%;top:22.26%">2</span><span class="pin" style="left:82.27%;top:22.26%">3</span></div><figcaption><b>①</b> Search <b>②</b> Create <b>③</b> as cardio</figcaption></figure>
       <ol>
         <li>Tap <kbd>Add exercise</kbd>.</li>
         <li>Pick from the list, or search. Exercises you have used under the same workout title are suggested first.</li>
@@ -86,6 +98,7 @@
       <p>To delete an exercise you created from your library, hold it in the list. This also removes it from every workout it was logged in. Built-in exercises cannot be deleted.</p>
 
       <h2 id="sets">Log sets</h2>
+      <figure class="fig side"><div class="wrap"><img src="img/guide-03-editor.jpg" alt="A workout in progress" width="660" height="1434" loading="lazy" /><span class="pin" style="left:44.88%;top:9.41%">1</span><span class="pin" style="left:42.27%;top:27.93%">2</span><span class="pin" style="left:12.05%;top:33.68%">3</span><span class="pin" style="left:33.52%;top:33.68%">4</span><span class="pin" style="left:87.5%;top:33.68%">5</span><span class="pin" style="left:26.93%;top:54.92%">6</span><span class="pin" style="left:73.07%;top:54.92%">7</span><span class="pin" style="left:90.68%;top:26.26%">8</span><span class="pin" style="left:81.59%;top:26.26%">9</span></div><figcaption><b>①</b> Timer <b>②</b> Use last session <b>③</b> Set type badge <b>④</b> Weight field <b>⑤</b> Set menu <b>⑥</b> Add set <b>⑦</b> Quick fill <b>⑧</b> Exercise menu <b>⑨</b> Exercise notes</figcaption></figure>
       <ul>
         <li>Type the weight and reps. Empty sets below take the same values, so three sets at one weight need typing once.</li>
         <li><kbd>Add set</kbd> adds another with the same numbers as the one above.</li>
@@ -94,9 +107,10 @@
         <li>Swipe a set to the left to delete it. A long swipe deletes at once.</li>
         <li>Tap the note icon to write a note for the exercise. There is a box for notes on the whole workout at the bottom.</li>
       </ul>
-      <p>While a workout is in progress, changes are saved as you make them; the top of the screen reads Saved. A finished workout or a plan opens for editing instead: make your changes, then tap <kbd>Save</kbd> at the top. If you try to leave with unsaved changes, FitLog asks whether to save or discard them.</p>
+      <p>While a workout is in progress, changes are saved as you make them; the top of the screen reads Saved. A finished workout or a plan opens for editing instead: make your changes, then tap <kbd>Save</kbd> at the top. If you try to leave with unsaved changes, SplitLog asks whether to save or discard them.</p>
 
       <h2 id="types">Warm-ups, drop sets and sets to failure</h2>
+      <figure class="fig side"><div class="wrap"><img src="img/guide-05-set-sheet.jpg" alt="The options for one set" width="660" height="1434" loading="lazy" /><span class="pin" style="left:26.82%;top:59.83%">1</span><span class="pin" style="left:26.82%;top:65.69%">2</span><span class="pin" style="left:73.18%;top:65.69%">3</span><span class="pin" style="left:50%;top:72.7%">4</span><span class="pin" style="left:50%;top:78.35%">5</span><span class="pin" style="left:50%;top:84%">6</span></div><figcaption><b>①</b> Warm-up <b>②</b> Drop <b>③</b> To failure <b>④</b> Duplicate set <b>⑤</b> Copy to all sets below <b>⑥</b> Delete set</figcaption></figure>
       <p>Tap the number at the start of a set to change its type, duplicate it, or copy it to the sets below.</p>
       <ul>
         <li><strong>Warm-up</strong> sets are marked W. They do not count toward records or volume.</li>
@@ -109,6 +123,7 @@
       <p>To choose them, tap the <kbd>•••</kbd> on the exercise, then <kbd>Variables</kbd>. Time accepts 30, 30:00 or 1:05:00. If you log speed and time, the distance is worked out for you.</p>
 
       <h2 id="session">Pause and finish</h2>
+      <div class="figs"><figure class="fig"><div class="wrap"><img src="img/guide-04-editor-bottom.jpg" alt="The bottom of a workout" width="660" height="1434" loading="lazy" /><span class="pin" style="left:50%;top:68.83%">1</span><span class="pin" style="left:50%;top:79.16%">2</span><span class="pin" style="left:50%;top:89.33%">3</span></div><figcaption><b>①</b> Add exercise <b>②</b> Workout notes <b>③</b> Finish workout</figcaption></figure><figure class="fig"><div class="wrap"><img src="img/guide-07-finished.jpg" alt="A finished workout open for editing" width="660" height="1434" loading="lazy" /><span class="pin" style="left:50%;top:9.41%">1</span><span class="pin" style="left:70.09%;top:19.3%">2</span><span class="pin" style="left:6.36%;top:9.41%">3</span></div><figcaption><b>①</b> Save <b>②</b> Resume <b>③</b> Back</figcaption></figure></div>
       <ul>
         <li>Tap the timer at the top to pause or resume, and to switch gym reminders on or off. Time spent paused is not counted.</li>
         <li>Tap <kbd>Finish workout</kbd> when you are done.</li>
@@ -125,6 +140,7 @@
       <p>Plans do not count toward your streak, your records or your history until you start them.</p>
 
       <h2 id="records">Records and progress</h2>
+      <figure class="fig side"><div class="wrap"><img src="img/guide-10-progress.jpg" alt="The Progress tab" width="660" height="1434" loading="lazy" /><span class="pin" style="left:50%;top:16.63%">1</span><span class="pin" style="left:79.68%;top:34.52%">2</span><span class="pin" style="left:50%;top:73%">3</span></div><figcaption><b>①</b> Exercise <b>②</b> Range <b>③</b> Chart</figcaption></figure>
       <p>A set is marked <strong>PR</strong> when its weight is higher than the heaviest you have logged for that exercise in any earlier workout. Warm-ups do not count.</p>
       <p>The Progress tab shows, for any exercise, your all-time best, a chart of your top weight over time, and a list of every record. For cardio it shows time, distance and pace.</p>
 
@@ -133,7 +149,8 @@
       <p>Change the goal in Settings, under Goal.</p>
 
       <h2 id="history">History</h2>
-      <p>The History tab is a calendar of the days you trained. Swipe left or right to change month, and tap a day to see its workouts.</p>
+      <div class="figs"><figure class="fig"><div class="wrap"><img src="img/guide-08-history.jpg" alt="The History tab in Month view" width="660" height="1434" loading="lazy" /><span class="pin" style="left:88.5%;top:10.04%">1</span><span class="pin" style="left:13.57%;top:26.05%">2</span><span class="pin" style="left:89.77%;top:18.31%">3</span><span class="pin" style="left:50%;top:60.67%">4</span></div><figcaption><b>①</b> Year <b>②</b> A training day <b>③</b> Next month <b>④</b> A workout</figcaption></figure><figure class="fig"><div class="wrap"><img src="img/guide-09-history-year.jpg" alt="The History tab in Year view" width="660" height="1434" loading="lazy" /><span class="pin" style="left:79.55%;top:54.97%">1</span><span class="pin" style="left:10.23%;top:18.31%">2</span><span class="pin" style="left:73.11%;top:10.04%">3</span></div><figcaption><b>①</b> A month <b>②</b> Previous year <b>③</b> Month</figcaption></figure></div>
+      <p>The History tab is a calendar of the days you trained. Swipe left or right to change month, and tap a day to see its workouts. Switch to <kbd>Year</kbd> at the top to see the whole year as twelve small months with every training day lit; swipe to change year, and tap a month to open it.</p>
 
       <h2 id="reminders">Reminders</h2>
       <p>Both kinds are optional and are switched on in Settings. iPhone asks for permission the first time.</p>
@@ -143,42 +160,44 @@
       </ul>
 
       <h2 id="widget">Home Screen widget</h2>
-      <p>Hold an empty area of your Home Screen, tap <kbd>Edit</kbd>, then <kbd>Add Widget</kbd>, and search for FitLog. There are two: <strong>Streak</strong> shows your streak and this week's training days, and <strong>Start workout</strong> is a one-tap tile that opens the app on the start sheet. The Start workout widget also fits the Lock Screen: hold the Lock Screen, tap <kbd>Customize</kbd>, and add it under the clock. On iOS 18 and later you can also put a Start workout control in a Lock Screen corner, in place of the flashlight or camera, or in Control Center: hold the Lock Screen, tap <kbd>Customize</kbd>, tap a corner button and choose FitLog.</p>
+      <p>Hold an empty area of your Home Screen, tap <kbd>Edit</kbd>, then <kbd>Add Widget</kbd>, and search for SplitLog. There are two: <strong>Streak</strong> shows your streak and this week's training days, and <strong>Start workout</strong> is a one-tap tile that opens the app on the start sheet. The Start workout widget also fits the Lock Screen: hold the Lock Screen, tap <kbd>Customize</kbd>, and add it under the clock. On iOS 18 and later you can also put a Start workout control in a Lock Screen corner, in place of the flashlight or camera, or in Control Center: hold the Lock Screen, tap <kbd>Customize</kbd>, tap a corner button and choose SplitLog.</p>
 
       <h2 id="settings">Units and themes</h2>
+      <figure class="fig side"><div class="wrap"><img src="img/guide-12-settings-top.jpg" alt="Settings, appearance units and goal" width="660" height="1434" loading="lazy" /><span class="pin" style="left:50%;top:24.22%">1</span><span class="pin" style="left:86.15%;top:54.6%">2</span><span class="pin" style="left:87.5%;top:73.74%">3</span><span class="pin" style="left:86.59%;top:85.56%">4</span></div><figcaption><b>①</b> Theme <b>②</b> Weight unit <b>③</b> Weekly goal <b>④</b> Daily check-in</figcaption></figure>
       <p>In Settings you can switch between pounds and kilograms, and miles and kilometres. Workouts you already logged are converted for display and keep the values you typed. There are six themes to choose from.</p>
 
       <h2 id="data">Keeping your log safe</h2>
-      <div class="card"><p>Your log is kept on your iPhone only. There is no account and no copy on a server, so if the phone is lost and you have no backup, the log is lost with it. Deleting FitLog from your iPhone deletes the log too.</p></div>
+      <figure class="fig side"><div class="wrap"><img src="img/guide-11-settings-data.jpg" alt="Settings, the Your data section" width="660" height="1434" loading="lazy" /><span class="pin" style="left:82.53%;top:47.7%">1</span><span class="pin" style="left:81.36%;top:54.5%">2</span><span class="pin" style="left:81.21%;top:61.3%">3</span><span class="pin" style="left:85.59%;top:68.1%">4</span></div><figcaption><b>①</b> Save a backup <b>②</b> Restore from a file <b>③</b> Export to CSV <b>④</b> Erase everything</figcaption></figure>
+      <div class="card"><p>Your log is kept on your iPhone only. There is no account and no copy on a server, so if the phone is lost and you have no backup, the log is lost with it. Deleting SplitLog from your iPhone deletes the log too.</p></div>
       <h3>Save a backup file</h3>
       <ol>
-        <li>Open Settings in FitLog and tap <kbd>Save</kbd> next to Save a backup.</li>
+        <li>Open Settings in SplitLog and tap <kbd>Save</kbd> next to Save a backup.</li>
         <li>Choose <kbd>Save to Files</kbd> and pick iCloud Drive, or send the file to yourself.</li>
       </ol>
-      <p>The file holds everything: workouts, sets, notes, plans, your exercise library and your settings. FitLog reminds you when your last backup is more than a month old.</p>
+      <p>The file holds everything: workouts, sets, notes, plans, your exercise library and your settings. SplitLog reminds you when your last backup is more than a month old.</p>
       <h3>Restore from a file</h3>
       <ol>
         <li>Open Settings and tap <kbd>Choose file</kbd> next to Restore from a file.</li>
-        <li>Pick the backup. FitLog shows what is in it before anything changes.</li>
+        <li>Pick the backup. SplitLog shows what is in it before anything changes.</li>
         <li>Tap <kbd>Restore</kbd>.</li>
       </ol>
       <p>Restoring adds the file's workouts to what is on the phone. Nothing you logged is removed, and nothing is added twice: a workout that is already on the phone is recognised, even if it arrived from a spreadsheet, and a backup fills in its notes and session times.</p>
       <h3>Export a spreadsheet</h3>
-      <p><kbd>Export to CSV</kbd> makes a file with one row per set that opens in Numbers, Excel or Google Sheets. FitLog can also restore from this file, but a spreadsheet holds sets only. Use a backup file to keep notes, plans and session times.</p>
+      <p><kbd>Export to CSV</kbd> makes a file with one row per set that opens in Numbers, Excel or Google Sheets. SplitLog can also restore from this file, but a spreadsheet holds sets only. Use a backup file to keep notes, plans and session times.</p>
       <h3>Erase everything</h3>
       <p><kbd>Erase everything</kbd> in Settings removes every workout from the iPhone after you confirm. It cannot be undone.</p>
 
       <h2 id="newphone">Moving to a new iPhone</h2>
       <ol>
         <li>On the old iPhone, save a backup file to iCloud Drive as described above. Do this even if you plan to transfer the whole phone.</li>
-        <li>Set up the new iPhone. If you transfer from the old iPhone or restore from an iCloud backup, FitLog and your log normally arrive with everything else.</li>
-        <li>Open FitLog on the new iPhone. If your workouts are there, you are done.</li>
-        <li>If they are not, install FitLog, open Settings, tap <kbd>Choose file</kbd>, and pick the backup from iCloud Drive.</li>
+        <li>Set up the new iPhone. If you transfer from the old iPhone or restore from an iCloud backup, SplitLog and your log normally arrive with everything else.</li>
+        <li>Open SplitLog on the new iPhone. If your workouts are there, you are done.</li>
+        <li>If they are not, install SplitLog, open Settings, tap <kbd>Choose file</kbd>, and pick the backup from iCloud Drive.</li>
       </ol>
       <p>Keep the old iPhone as it is until you have seen your workouts on the new one.</p>
 
       <footer>
-        FitLog is made by Abel Anand. <a href="guide.html">How to use</a> · <a href="privacy.html">Privacy policy</a> · <a href="support.html">Help and support</a>
+        SplitLog is made by Abel Anand. <a href="guide.html">How to use</a> · <a href="privacy.html">Privacy policy</a> · <a href="support.html">Help and support</a>
       </footer>
     </main>
     <script>

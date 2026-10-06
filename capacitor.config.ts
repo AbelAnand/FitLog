@@ -2,12 +2,12 @@ import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'com.abelanand.fitlog',
-  appName: 'FitLog',
+  appName: 'SplitLog',
   webDir: 'dist',
   backgroundColor: '#0b0d10',
   ios: {
     contentInset: 'never',
-    scheme: 'FitLog',
+    scheme: 'SplitLog',
   },
   plugins: {
     StatusBar: { style: 'DARK', overlaysWebView: true },

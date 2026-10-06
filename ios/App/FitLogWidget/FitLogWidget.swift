@@ -160,7 +160,7 @@ struct EmptyView2: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Image(systemName: "dumbbell.fill").foregroundStyle(Theme.accent)
-            Text("Open FitLog to start tracking.").font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.muted)
+            Text("Open SplitLog to start tracking.").font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.muted)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .widgetURL(URL(string: "fitlog://start"))
@@ -231,7 +231,7 @@ struct StartWorkoutView: View {
                     Image(systemName: "dumbbell.fill").font(.system(size: 20, weight: .semibold))
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Start workout").font(.system(size: 15, weight: .semibold))
-                        Text("FitLog").font(.system(size: 12)).opacity(0.7)
+                        Text("SplitLog").font(.system(size: 12)).opacity(0.7)
                     }
                     Spacer(minLength: 0)
                 }
@@ -262,7 +262,7 @@ struct StartWorkoutWidget: Widget {
             StartWorkoutView()
         }
         .configurationDisplayName("Start workout")
-        .description("One tap opens FitLog ready to start a workout. Works on the Home Screen and the Lock Screen.")
+        .description("One tap opens SplitLog ready to start a workout. Works on the Home Screen and the Lock Screen.")
         .supportedFamilies([.systemSmall, .accessoryCircular, .accessoryRectangular])
     }
 }
@@ -277,7 +277,7 @@ struct StartWorkoutControl: ControlWidget {
             }
         }
         .displayName("Start workout")
-        .description("Opens FitLog ready to start a workout.")
+        .description("Opens SplitLog ready to start a workout.")
     }
 }
 
