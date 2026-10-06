@@ -235,8 +235,11 @@
 .page-back { animation: page-back 180ms ease-out backwards; }
 
 /* Leaving: a removed row closes up instead of vanishing. */
-.collapsible { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 190ms var(--ease-out), opacity 150ms ease-out; }
-.collapsible > * { min-height: 0; }
+.collapsible { display: grid; grid-template-rows: 1fr; grid-template-columns: minmax(0, 1fr); transition: grid-template-rows 190ms var(--ease-out), opacity 150ms ease-out; }
+/* min-width: 0, like the minmax(0, …) column: otherwise one unbreakable line (a long last-session
+   hint) widens the grid past the screen, and iOS shrinks the whole page to fit it and zooms back
+   in on every focused field. */
+.collapsible > * { min-height: 0; min-width: 0; }
 .collapsible.leaving { grid-template-rows: 0fr; opacity: 0; pointer-events: none; }
 .collapsible.leaving > * { overflow: hidden; }
 

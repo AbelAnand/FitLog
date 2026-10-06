@@ -46,7 +46,11 @@ export function demoBackup(today = new Date()): BackupFile {
         }
         const weight = base + (8 - week) * 5
         sets.push({ id: uuid(), workout_exercise_id: e.id, set_number: 1, set_type: 'warmup', weight: Math.round((weight * 0.5) / 5) * 5, unit: 'lb', reps: 10, ...blank, created_at: stamp(1) })
-        for (let n = 1; n <= 3; n++) sets.push({ id: uuid(), workout_exercise_id: e.id, set_number: n + 1, set_type: 'working', weight, unit: 'lb', reps: 9 - n, ...blank, created_at: stamp(n + 1) })
+        for (let n = 1; n <= 3; n++) {
+          // The last two working sets are drop sets, so last-session hints are as long as a real log's.
+          const drop = n >= 2 ? { set_type: 'drop' as const, drops: [{ weight: weight - 30, reps: 10 }, { weight: weight - 60, reps: 10 }] } : {}
+          sets.push({ id: uuid(), workout_exercise_id: e.id, set_number: n + 1, set_type: 'working', weight, unit: 'lb', reps: 9 - n, ...blank, created_at: stamp(n + 1), ...drop })
+        }
       })
     })
   }
