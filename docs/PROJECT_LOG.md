@@ -203,3 +203,13 @@ npm run build:ios      # production bundle into ios/
 ```
 
 The pages in `site/` are plain HTML and can be opened directly in a browser.
+
+## 2026-10-05 and 2026-10-06
+
+- Fixed: a long last-session hint (drop sets) widened the exercise card past the screen; iOS shrank the page and zoomed on every focused field. The card list grid now allows shrinking (`minmax(0, 1fr)`), and `shrink-to-fit=no` is in the viewport meta.
+- Repeat last / Base it on last now copy the exercises only, one empty set each, with last time's matching set as ghost text in empty fields. Abel's reason: rows must always equal sets done.
+- Finished workouts and plans open for editing with an explicit Save; leaving asks Save or Discard (`src/api/hold.ts`, `BackGesturePlugin.swift` turns the edge swipe off while unsaved). Live sessions still save as they go.
+- Pre-release test pass (simulator, driven through the web view; results written to Documents): home, start, repeat, add exercise, sets of every type, drop rows, duplicate, copy down, delete, quick fill, use last session, notes, title and date edits, remove exercise, finish, resume, pause, session sheet, delete workout, plans and check-off, history, progress (strength and cardio), units and conversions, goal, themes, backup and CSV restore, hostile files, erase, relaunch persistence, long-press menus, custom exercise delete, empty-workout cleanup, backup reminder. Findings fixed: the exercise picker showed raw dates ("Last: 2026-10-06"); gym reminders defaulted to on, so the first workout start asked for notification permission; the daily-reminder sync touched the notifications plugin at every launch.
+- Simulator gotcha: an unanswered notification permission dialog survives uninstall and reappears on every install of the bundle id; erase the simulator to clear it.
+- Not testable in the simulator, left for the phone: swipe gestures (rows, sheets, calendar), keyboard with real taps, share sheet for backup and CSV, notification permission and delivery, widget, edge swipe-back while unsaved.
+

@@ -57,6 +57,7 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 > LOG A WORKOUT IN SECONDS
 > • Open the app and start. There is nothing to sign up for.
 > • Every change appears instantly and works without a signal.
+> • Finished workouts and plans open for editing, with Save and Discard so nothing changes by accident.
 > • Fill down, quick fill, and "use last session" so you never retype the same numbers.
 > • Warm-up sets, drop sets, and sets to failure.
 > • Cardio with the figures you care about: time, distance, speed, incline, heart rate, and more.
@@ -105,6 +106,7 @@ declares no collected data and no tracking. The app makes no network requests at
 > All data is stored on the device. The app makes no network requests and collects no data.
 > Backup, restore and erase are in Settings → Your data.
 > Reminders are local notifications; permission is requested only when the user turns them on in Settings.
+> A finished workout or a plan opens for editing: changes are kept on screen until Save, and leaving asks Save or Discard. Workouts in progress save as you go.
 > The app has no purchases, ads, or tracking.
 
 ## 6. Check on a real phone first
@@ -117,7 +119,9 @@ Install the archive through TestFlight and run this once.
 4. Settings → **Save a backup** → Save to Files. Then **Restore from a file** and pick it. The sheet must list your workouts.
 5. Force-quit FitLog and open it again. Your workouts are there.
 6. Add the widget to the Home Screen and tap it.
-7. Turn on a reminder and confirm iPhone asks for permission.
+7. Turn on a reminder and confirm iPhone asks for permission. On a fresh install, the permission question must not appear at launch or when starting a workout: it appears only from the Settings toggles.
+8. Open a finished workout, change a set, and swipe from the left edge: nothing should happen while the change is unsaved. Tap back: the Save / Discard question appears. Discard, reopen the workout, and confirm the set is unchanged.
+9. Open a finished workout, change a set, tap Save, then force-quit and reopen: the change is there.
 
 ## 7. Moving your own data into this version
 

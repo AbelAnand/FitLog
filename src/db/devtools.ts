@@ -1,4 +1,6 @@
 import { addDays, format, startOfWeek } from 'date-fns'
+import { serializeBackup } from './backup'
+import { setsToCsv } from '../lib/csv'
 import type { QueryClient } from '@tanstack/react-query'
 import { uuid } from '../lib/uuid'
 import { readImportFile } from './backup'
@@ -69,11 +71,25 @@ export function demoBackup(today = new Date()): BackupFile {
   return { app: 'FitLog', format: 1, exportedAt: today.toISOString(), profile: { unit: 'lb', distance_unit: 'mi', weekly_goal: 4 }, exercises: [...exercises.values()], workouts, workout_exercises: entries, sets }
 }
 
+/** Every native plugin call since the app loaded, with where it came from (simulator tests read it). */
+const nativeCalls: string[] = []
+{
+  const cap = (window as unknown as { Capacitor?: { nativePromise?: (...args: unknown[]) => unknown } }).Capacitor
+  if (cap?.nativePromise) {
+    const original = cap.nativePromise
+    cap.nativePromise = function (this: unknown, ...args: unknown[]) {
+      nativeCalls.push(`${String(args[0])}.${String(args[1])} ${(new Error().stack ?? '').split('\n').slice(1, 7).join(' <- ').replace(/https?:\/\/[^ )]*\//g, '')}`)
+      return original.apply(this, args)
+    }
+  }
+}
+
 export function installDevtools(db: LocalDb, qc: QueryClient) {
   const refresh = () => qc.invalidateQueries()
   const tools = {
     db,
     qc,
+    nativeCalls,
     /** Replace whatever is stored with the demo log. */
     async seedDemo() {
       await db.open()
@@ -93,6 +109,15 @@ export function installDevtools(db: LocalDb, qc: QueryClient) {
       const summary = await db.importAll(read.file, { takeProfile: read.kind === 'backup', kind: read.kind })
       await refresh()
       return summary
+    },
+    /** The log as the backup file and spreadsheet the user would save (simulator tests restore them). */
+    backupText: () => serializeBackup(db.exportAll(new Date())),
+    csvText: () => setsToCsv(db.allSets()),
+    demoFile: () => serializeBackup(demoBackup()),
+    /** Write a text file into the app's Documents folder (simulator tests read it back with simctl). */
+    async writeDocument(name: string, text: string) {
+      const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
+      await Filesystem.writeFile({ path: name, data: text, directory: Directory.Documents, encoding: Encoding.UTF8 })
     },
     /** Paint a line of text over the app so a screenshot can show a result. */
     show(text: string) {

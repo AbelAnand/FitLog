@@ -1,3 +1,4 @@
+import { format, parseISO } from 'date-fns'
 import { useMemo, useState } from 'react'
 import { useDeleteExercise } from '../api/mutations'
 import { useLongPress } from '../lib/useLongPress'
@@ -118,7 +119,7 @@ export function ExercisePicker({
       {(model.suggestedMine.length > 0 || model.suggestedStarters.length > 0) && (
         <Section label={suggestedLabel} accent>
           {model.suggestedMine.map((e) => (
-            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={isStarterExercise(e.name) ? undefined : () => setManage({ id: e.id, name: e.name })} />
+            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${format(parseISO(e.lastUsed), 'MMM d')}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={isStarterExercise(e.name) ? undefined : () => setManage({ id: e.id, name: e.name })} />
           ))}
           {model.suggestedStarters.map((s) => (
             <Row key={s.name} name={s.name} kind={s.kind} sub={GROUP_LABELS[s.group]} onClick={() => pick(s.name, s.kind, undefined, s.trackIncline)} />
@@ -129,7 +130,7 @@ export function ExercisePicker({
       {model.restMine.length > 0 && (
         <Section label="Your exercises">
           {model.restMine.map((e) => (
-            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${e.lastUsed}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={isStarterExercise(e.name) ? undefined : () => setManage({ id: e.id, name: e.name })} />
+            <Row key={e.id} name={e.name} kind={e.kind} sub={e.lastUsed ? `Last: ${format(parseISO(e.lastUsed), 'MMM d')}` : undefined} onClick={() => pick(e.name, e.kind, e.id)} onHold={isStarterExercise(e.name) ? undefined : () => setManage({ id: e.id, name: e.name })} />
           ))}
         </Section>
       )}

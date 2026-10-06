@@ -11,10 +11,12 @@ export interface ReminderSettings {
   gymIntervalMin: number
 }
 
-export const DEFAULT_SETTINGS: ReminderSettings = { dailyEnabled: false, hour: 19, minute: 0, gymEnabled: true, gymIntervalMin: 15 }
+export const DEFAULT_SETTINGS: ReminderSettings = { dailyEnabled: false, hour: 19, minute: 0, gymEnabled: false, gymIntervalMin: 15 }
 
 const KEY = 'fitlog.reminders'
 const GYM_KEY = 'fitlog.gymSession'
+/** Set once daily reminders have been scheduled, so the plugin is never touched before the user turns them on. */
+const DAILY_SCHEDULED_KEY = 'fitlog.dailyScheduled'
 const DAILY_IDS = Array.from({ length: 14 }, (_, i) => 1001 + i)
 const GYM_IDS = Array.from({ length: 10 }, (_, i) => 2001 + i)
 
@@ -61,9 +63,16 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export async function syncDailyReminder(trainedDates: string[], settings?: ReminderSettings): Promise<void> {
   if (!isNative) return
   const s = settings ?? (await loadReminderSettings())
+  const store = await kv()
+  // Loading the notifications plugin on iOS shows the permission prompt. Stay away from it until the
+  // user has turned reminders on (the prompt then comes from the Settings toggle, where it is expected).
+  if (!s.dailyEnabled && !(await store.get(DAILY_SCHEDULED_KEY))) return
   const { LocalNotifications } = await import('@capacitor/local-notifications')
   await LocalNotifications.cancel({ notifications: DAILY_IDS.map((id) => ({ id })) }).catch(() => {})
-  if (!s.dailyEnabled) return
+  if (!s.dailyEnabled) {
+    await store.remove(DAILY_SCHEDULED_KEY)
+    return
+  }
   if ((await LocalNotifications.checkPermissions()).display !== 'granted') return
   const trained = new Set(trainedDates)
   const now = new Date()
@@ -81,6 +90,7 @@ export async function syncDailyReminder(trainedDates: string[], settings?: Remin
     })
   }
   if (notifications.length) await LocalNotifications.schedule({ notifications })
+  await store.set(DAILY_SCHEDULED_KEY, '1')
 }
 
 export interface GymSession { workoutId: string; title: string; startedAt: number }
@@ -154,6 +164,7 @@ export async function clearReminders(): Promise<void> {
   const store = await kv()
   await store.remove(KEY)
   await store.remove(GYM_KEY)
+  await store.remove(DAILY_SCHEDULED_KEY)
   if (!isNative) return
   const { LocalNotifications } = await import('@capacitor/local-notifications')
   await LocalNotifications.cancel({ notifications: [...DAILY_IDS, ...GYM_IDS].map((id) => ({ id })) }).catch(() => {})
