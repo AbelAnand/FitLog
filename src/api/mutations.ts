@@ -8,6 +8,7 @@ import type { SetRow } from '../lib/prs'
 import { editKey, keys } from './keys'
 import { enqueue } from './queue'
 import * as opt from './optimistic'
+import { holdWrite, isHolding, releaseHeld, type Write } from './hold'
 import type { NewSet, NewSetWithId } from './optimistic'
 import type { Exercise, ExerciseKind, Profile, SetPatch, WorkoutDetail, WorkoutExerciseDetail, WorkoutSummary } from './types'
 import { defaultMetricsFor, type MetricKey } from '../data/cardio-metrics'
@@ -78,19 +79,54 @@ function settle(qc: QueryClient, workoutId: string) {
   invalidateAll(qc, workoutId)
 }
 
-/** A write to one workout: shown immediately, saved in order. */
+/**
+ * A write to one workout: shown immediately, saved in order. While the workout's writes are
+ * being held for an explicit Save (src/api/hold.ts), the write is kept instead of run, and the
+ * screen is not re-read, so the copy on screen stays the edited one.
+ */
 function useEdit<V>(workoutId: string, cfg: { error: string; apply?: (w: WorkoutDetail, v: V) => WorkoutDetail; run: (v: V) => Promise<unknown> }) {
   const qc = useQueryClient()
   return useMutation({
     mutationKey: editKey(workoutId),
     networkMode: 'always',
     meta: { error: cfg.error },
-    mutationFn: (v: V) => enqueue(workoutId, () => cfg.run(v)),
+    mutationFn: (v: V) => (isHolding(workoutId) ? holdWrite(workoutId, () => cfg.run(v)) : enqueue(workoutId, () => cfg.run(v))),
     onMutate: async (v: V) => {
       if (cfg.apply) await applyOptimistic(qc, workoutId, (w) => cfg.apply!(w, v))
     },
-    onSettled: () => settle(qc, workoutId),
+    onSettled: () => {
+      if (!isHolding(workoutId)) settle(qc, workoutId)
+    },
   })
+}
+
+/** Resolves once every write to this workout has been queued or held (changes register a tick after they are made). */
+export async function editsQuiet(qc: QueryClient, workoutId: string): Promise<void> {
+  for (let i = 0; i < 60 && qc.isMutating({ mutationKey: editKey(workoutId) }) > 0; i++) await new Promise((r) => setTimeout(r, 16))
+}
+
+/** Run writes that were held, in order, as one save. Resolves true when they were all written. */
+export function writeHeld(qc: QueryClient, workoutId: string, writes: Write[]): Promise<boolean> {
+  if (!writes.length) return Promise.resolve(true)
+  return runEdit(qc, workoutId, {
+    error: "Couldn't save the changes.",
+    run: async () => {
+      for (const write of writes) await write()
+    },
+  }).then(() => true, () => false)
+}
+
+/** Save the changes held for this workout. */
+export async function saveHeld(qc: QueryClient, workoutId: string): Promise<boolean> {
+  await editsQuiet(qc, workoutId)
+  return writeHeld(qc, workoutId, releaseHeld(workoutId))
+}
+
+/** Drop the changes held for this workout and show what is stored again. */
+export async function discardHeld(qc: QueryClient, workoutId: string): Promise<void> {
+  await editsQuiet(qc, workoutId)
+  releaseHeld(workoutId)
+  invalidateAll(qc, workoutId)
 }
 
 /** Same as `useEdit`, for writes started outside a component's lifetime (creating, deleting, leaving a screen). */
@@ -386,33 +422,31 @@ export function useReplaceSets(workoutId: string) {
 }
 
 /**
- * Copy the exercises and sets from the most recent workout with the same title
- * into this workout (which should be empty).
+ * Copy the exercises from the most recent workout with the same title into this
+ * workout (which should be empty), each with one empty set. Last time's sets are
+ * shown as hints in the rows rather than logged again.
  */
 export function useRepeatLast(workoutId: string) {
-  const qc = useQueryClient()
-  return useEdit<{ sourceWorkoutId: string; planned?: boolean }>(workoutId, {
+  const edit = useEdit<{ copies: WorkoutExerciseDetail[]; createdAt: string }>(workoutId, {
     error: "Couldn't copy the last workout.",
-    run: async (input) => {
-      await db.open()
-      const source = db.getWorkout(input.sourceWorkoutId)
-      const now = nowIso()
-      const copies: WorkoutExerciseDetail[] = source.exercises.map((we) => ({
-        ...we,
-        id: uuid(),
-        notes: '',
-        planned: input.planned ?? false,
-        completed_at: null,
-        sets: we.sets.map((s) => ({ ...s, id: uuid(), created_at: now })),
-      }))
-      await applyOptimistic(qc, workoutId, (w) => ({ ...w, exercises: copies }))
-      await db.replaceEntries(
+    apply: (w, v) => ({ ...w, exercises: v.copies }),
+    run: (v) =>
+      db.replaceEntries(
         workoutId,
-        copies.map((we) => ({
-          entry: { id: we.id, workout_id: workoutId, exercise_id: we.exercise_id, position: we.position, notes: '', planned: we.planned, completed_at: null, created_at: now },
+        v.copies.map((we) => ({
+          entry: { id: we.id, workout_id: workoutId, exercise_id: we.exercise_id, position: we.position, notes: '', planned: we.planned, completed_at: null, created_at: v.createdAt },
           sets: we.sets.map((s) => ({ ...s, workout_exercise_id: we.id })),
         })),
-      )
-    },
+      ),
   })
+  return {
+    mutate: (input: { sourceWorkoutId: string; planned?: boolean }) => {
+      const source = db.getWorkout(input.sourceWorkoutId)
+      const profile = db.profile()
+      const createdAt = nowIso()
+      const copies = opt.repeatExercises(source, { entry: uuid, set: uuid }, { planned: input.planned ?? false, createdAt, unit: profile.unit, distanceUnit: profile.distance_unit })
+      edit.mutate({ copies, createdAt })
+    },
+    isPending: edit.isPending,
+  }
 }

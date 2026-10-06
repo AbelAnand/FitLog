@@ -50,6 +50,35 @@ const mapExercise = (w: WorkoutDetail, weId: string, fn: (we: WorkoutExerciseDet
   exercises: w.exercises.map((we) => (we.id === weId ? fn(we) : we)),
 })
 
+/**
+ * The exercises of an earlier workout, each with a single empty set, for "Repeat last".
+ * Last time's numbers stay out of the rows (they are shown as hints instead), so the row
+ * count always says how many sets have actually been done. Units follow the earlier sets.
+ */
+export function repeatExercises(
+  source: WorkoutDetail,
+  ids: { entry: () => string; set: () => string },
+  options: { planned: boolean; createdAt: string; unit: Unit; distanceUnit: DistanceUnit },
+): WorkoutExerciseDetail[] {
+  return source.exercises.map((we) => {
+    const first = we.sets[0]
+    const cardio = we.kind === 'cardio'
+    return {
+      ...we,
+      id: ids.entry(),
+      notes: '',
+      planned: options.planned,
+      completed_at: null,
+      sets: [
+        setDetailFrom(
+          { id: ids.set(), set_number: 1, weight: 0, reps: 0, unit: first?.unit ?? options.unit, distance_unit: cardio ? first?.distance_unit ?? options.distanceUnit : null },
+          options.createdAt,
+        ),
+      ],
+    }
+  })
+}
+
 export function addExercise(w: WorkoutDetail, we: WorkoutExerciseDetail): WorkoutDetail {
   if (w.exercises.some((x) => x.id === we.id)) return w
   return { ...w, exercises: [...w.exercises, we].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)) }

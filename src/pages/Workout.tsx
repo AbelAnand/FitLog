@@ -3,8 +3,9 @@ import { useNavigate, useNavigationType, useParams } from 'react-router'
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { useAllSets, useProfile, useWorkout, useWorkouts } from '../api/queries'
-import { deleteWorkout, editorOpen, useAddExercise, useAddSets, useDeleteSet, useRemoveExercise, useRepeatLast, useReplaceSets, useSessionControls, useUpdateExercise, useUpdateSets, useUpdateWorkout, useUpdateWorkoutExercise } from '../api/mutations'
+import { deleteWorkout, discardHeld, editorOpen, editsQuiet, saveHeld, useAddExercise, useAddSets, useDeleteSet, useRemoveExercise, useRepeatLast, useReplaceSets, useSessionControls, useUpdateExercise, useUpdateSets, useUpdateWorkout, useUpdateWorkoutExercise, writeHeld } from '../api/mutations'
 import { editKey, keys } from '../api/keys'
+import { heldCount, holdWrites, stopHolding, useHeldCount } from '../api/hold'
 import type { WorkoutDetail } from '../api/types'
 import { ExerciseCard, type LastSession } from '../components/ExerciseCard'
 import { ExercisePicker } from '../components/ExercisePicker'
@@ -12,7 +13,7 @@ import { SessionSheet } from '../components/SessionSheet'
 import { Button, Icon, MenuSheet, Sheet, Spinner } from '../components/ui'
 import { bestByExercise } from '../lib/prs'
 import { formatClock, formatSessionLength, isLiveSession, useElapsed } from '../lib/duration'
-import { isNative } from '../lib/native'
+import { isNative, setBackGesture } from '../lib/native'
 import { getGymSession, loadReminderSettings, startGymSession, stopGymSession } from '../lib/notifications'
 import { tap } from '../lib/haptics'
 import { useArrivals, useArrived, useLeaving } from '../lib/motion'
@@ -40,6 +41,27 @@ export function WorkoutPage() {
   const replaceSets = useReplaceSets(id)
   const deleteSet = useDeleteSet(id)
   const repeatLast = useRepeatLast(id)
+
+  // A finished workout or a plan opens for editing: every change shows at once but is written
+  // only on Save. A live session keeps saving as it goes, so nothing is lost if the phone locks.
+  const editing = !!workout && (workout.is_plan || !!workout.finished_at)
+  const dirty = useHeldCount(id) > 0
+  useEffect(() => {
+    if (!editing) return
+    holdWrites(id)
+    return () => {
+      // Leaving edit mode (Resume or Start, or the screen closing some other way): write what is still held.
+      writeHeld(qc, id, stopHolding(id))
+    }
+  }, [editing, id, qc])
+  // With unsaved changes, the edge swipe would leave without asking; the back button asks instead.
+  useEffect(() => {
+    if (!dirty) return
+    setBackGesture(false)
+    return () => { setBackGesture(true) }
+  }, [dirty])
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [savingHeld, setSavingHeld] = useState(false)
 
   const navType = useNavigationType()
   const arrivals = useArrivals(!!workout)
@@ -70,6 +92,39 @@ export function WorkoutPage() {
   const debounced = (key: 'title' | 'notes', value: string) => {
     if (timers.current[key]) window.clearTimeout(timers.current[key])
     timers.current[key] = window.setTimeout(() => updateWorkout.mutate({ [key]: value }), 500)
+  }
+  /** Commit what is still being typed (fields commit a moment after the last keystroke) and let it register. */
+  const settleEdits = async () => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    for (const key of ['title', 'notes'] as const) {
+      if (!timers.current[key]) continue
+      window.clearTimeout(timers.current[key])
+      timers.current[key] = undefined
+      updateWorkout.mutate({ [key]: key === 'title' ? title : notes })
+    }
+    await editsQuiet(qc, id)
+  }
+  const save = async (): Promise<boolean> => {
+    setSavingHeld(true)
+    await settleEdits()
+    const ok = await saveHeld(qc, id)
+    setSavingHeld(false)
+    return ok
+  }
+  const leave = async () => {
+    await settleEdits()
+    if (heldCount(id) > 0) setConfirmLeave(true)
+    else nav(-1)
+  }
+  const saveAndLeave = async () => {
+    if (!(await save())) return
+    setConfirmLeave(false)
+    nav(-1)
+  }
+  const discardAndLeave = async () => {
+    await discardHeld(qc, id)
+    setConfirmLeave(false)
+    nav(-1)
   }
 
   // A workout (or plan) that never got an exercise is discarded when you leave it.
@@ -148,12 +203,15 @@ export function WorkoutPage() {
     nav('/', { replace: true })
   }
 
-  const reopen = () => {
+  // Resume and Start leave edit mode, so the edits are saved first.
+  const reopen = async () => {
+    if (!(await save())) return
     session.reopen(workout)
   }
 
-  const startPlan = () => {
+  const startPlan = async () => {
     tap()
+    if (!(await save())) return
     session.startPlan()
     gymIfEnabled()
   }
@@ -176,6 +234,7 @@ export function WorkoutPage() {
 
   const remove = () => {
     discarded.current = true
+    stopHolding(id)
     deleteWorkout(qc, id).catch(() => {})
     stopGymSession()
     nav('/', { replace: true })
@@ -184,7 +243,7 @@ export function WorkoutPage() {
   return (
     <main className={`mx-auto max-w-lg px-4 pb-safe ${navType === 'POP' ? 'page-back' : 'page-push'}`}>
       <div className="sticky top-0 z-30 -mx-4 px-4 pb-2 bg-bg/90 backdrop-blur-xl flex items-center justify-between" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
-        <button type="button" aria-label="Back" onClick={() => nav(-1)} className="press -ml-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.Back /></button>
+        <button type="button" aria-label="Back" onClick={leave} className="press -ml-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.Back /></button>
         <div className="flex items-center gap-2 text-[13px] text-faint">
           {plan && (
             <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-semibold bg-surface-2 text-muted">
@@ -204,7 +263,13 @@ export function WorkoutPage() {
               {formatClock(elapsed)}
             </button>
           )}
-          <span>{saving ? 'Saving…' : 'Saved'}</span>
+          {editing && dirty ? (
+            <Button size="sm" onClick={save} disabled={savingHeld} aria-label="Save changes">
+              <Icon.Check /> Save
+            </Button>
+          ) : (
+            <span>{saving ? 'Saving…' : 'Saved'}</span>
+          )}
         </div>
         <button type="button" aria-label="More" onClick={() => setMenu(true)} className="press -mr-2 h-10 w-10 flex items-center justify-center text-muted"><Icon.More /></button>
       </div>
@@ -336,6 +401,15 @@ export function WorkoutPage() {
           { label: plan ? 'Delete plan' : 'Delete workout', icon: <Icon.Trash />, danger: true, onClick: () => setConfirmDelete(true) },
         ]}
       />
+
+      <Sheet open={confirmLeave} onClose={() => setConfirmLeave(false)} title="Save your changes?">
+        <p className="text-muted text-[14px] mb-4">This {plan ? 'plan' : 'workout'} has changes that haven't been saved.</p>
+        <div className="flex flex-col gap-2">
+          <Button size="lg" onClick={saveAndLeave} disabled={savingHeld}><Icon.Check /> Save</Button>
+          <Button variant="secondary" size="lg" className="!text-danger" onClick={discardAndLeave} disabled={savingHeld}>Discard changes</Button>
+          <Button variant="ghost" size="lg" onClick={() => setConfirmLeave(false)}>Keep editing</Button>
+        </div>
+      </Sheet>
 
       <Sheet open={confirmDelete} onClose={() => setConfirmDelete(false)} title={plan ? 'Delete this plan?' : 'Delete this workout?'}>
         <p className="text-muted text-[14px] mb-4">All its exercises and sets will be removed. This can't be undone.</p>

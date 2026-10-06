@@ -13,8 +13,9 @@ import { LIMITS } from '../data/limits'
 
 export interface LastSession {
   date: string
-  sets: Pick<SetDetail, 'weight' | 'unit' | 'reps' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline' | 'extra'>[]
+  sets: LastSet[]
 }
+export type LastSet = Pick<SetDetail, 'weight' | 'unit' | 'reps' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline' | 'extra'>
 
 /** A sensible first drop: ~80% of the weight, rounded to a plate. */
 function seedDrop(weight: number, reps: number, unit: Unit): Drop {
@@ -290,9 +291,9 @@ export function ExerciseCard({
         {we.sets.map((s, i) => (
           <Arriving key={s.id} loaded={arrivals} leaving={leaving.has(s.id)}>
             {cardio ? (
-              <CardioRow set={s} label={numbers[i]} metrics={metrics} distanceUnit={distanceUnit} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} onDelete={() => removeSet(s.id)} />
+              <CardioRow set={s} hint={last?.sets[i]} label={numbers[i]} metrics={metrics} distanceUnit={distanceUnit} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} onDelete={() => removeSet(s.id)} />
             ) : (
-              <StrengthRow set={s} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onDrops={(drops) => onUpdateSets([{ setId: s.id, patch: { drops } }])} onMenu={() => setRowMenu(s)} onDelete={() => removeSet(s.id)} />
+              <StrengthRow set={s} hint={last?.sets[i]} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onDrops={(drops) => onUpdateSets([{ setId: s.id, patch: { drops } }])} onMenu={() => setRowMenu(s)} onDelete={() => removeSet(s.id)} />
             )}
           </Arriving>
         ))}
@@ -435,8 +436,11 @@ function useLocalField(serverValue: string, commit: (v: string) => void, delay =
   return { v, onChange, flush }
 }
 
-function StrengthRow({ set, label, unit, isPr, onChange, onDrops, onMenu, onDelete }: { set: SetDetail; label: string; unit: Unit; isPr: boolean; onChange: (p: SetPatch) => void; onDrops: (drops: Drop[]) => void; onMenu: () => void; onDelete: () => void }) {
+/** The same set from the last session, shown as ghost text in an empty field. */
+function StrengthRow({ set, hint, label, unit, isPr, onChange, onDrops, onMenu, onDelete }: { set: SetDetail; hint?: LastSet; label: string; unit: Unit; isPr: boolean; onChange: (p: SetPatch) => void; onDrops: (drops: Drop[]) => void; onMenu: () => void; onDelete: () => void }) {
   const displayWeight = set.unit === unit ? set.weight : convert(set.weight, set.unit, unit)
+  const hintWeight = hint?.weight ? formatWeight(convert(hint.weight, hint.unit, unit)) : '0'
+  const hintReps = hint?.reps ? String(hint.reps) : '0'
   const w = useLocalField(displayWeight ? formatWeight(displayWeight) : '', (s) => onChange({ weight: Math.min(99999, Math.max(0, parseFloat(s.replace(',', '.')) || 0)), unit }))
   const r = useLocalField(set.reps ? String(set.reps) : '', (s) => onChange({ reps: Math.min(LIMITS.reps, Math.max(0, parseInt(s, 10) || 0)) }))
   const isDrop = set.set_type === 'drop'
@@ -446,11 +450,11 @@ function StrengthRow({ set, label, unit, isPr, onChange, onDrops, onMenu, onDele
       <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center bg-surface">
         <Badge label={label} type={set.set_type} isPr={isPr} onClick={onMenu} />
         <div className="relative @container">
-          <input className={`${inputClass} ${isPr ? 'ring-1 ring-inset ring-pr/70' : ''}`} inputMode="decimal" placeholder="0" value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`Set ${label} weight`} />
+          <input className={`${inputClass} ${isPr ? 'ring-1 ring-inset ring-pr/70' : ''}`} inputMode="decimal" placeholder={hintWeight} value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`Set ${label} weight`} />
           {/* A long number needs the room, so the badge gives up its letters. */}
           {isPr && <PrBadge compact={w.v.length > 3} className="absolute top-0 right-0 pointer-events-none" />}
         </div>
-        <input className={inputClass} inputMode="numeric" placeholder="0" value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`Set ${label} reps`} />
+        <input className={inputClass} inputMode="numeric" placeholder={hintReps} value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`Set ${label} reps`} />
         <button type="button" aria-label="Set options" onClick={() => { tap(); onMenu() }} className="press h-11 w-11 flex items-center justify-center text-faint active:text-text">
           <Icon.More />
         </button>
@@ -502,13 +506,13 @@ function DropRow({ drop, unit, displayUnit, label, onChange, onRemove }: { drop:
   )
 }
 
-function CardioRow({ set, label, metrics, distanceUnit, onChange, onMenu, onDelete }: { set: SetDetail; label: string; metrics: MetricKey[]; distanceUnit: DistanceUnit; onChange: (p: SetPatch) => void; onMenu: () => void; onDelete: () => void }) {
+function CardioRow({ set, hint, label, metrics, distanceUnit, onChange, onMenu, onDelete }: { set: SetDetail; hint?: LastSet; label: string; metrics: MetricKey[]; distanceUnit: DistanceUnit; onChange: (p: SetPatch) => void; onMenu: () => void; onDelete: () => void }) {
   return (
     <SwipeRow onDelete={onDelete} surface="bg-surface">
     <div className="grid gap-2 items-center bg-surface" style={{ gridTemplateColumns: `40px repeat(${metrics.length}, minmax(0, 1fr)) 44px` }}>
       <Badge label={label} type={set.set_type} isPr={false} onClick={onMenu} />
       {metrics.map((k) => (
-        <MetricInput key={k} set={set} k={k} distanceUnit={distanceUnit} label={`Interval ${label} ${METRIC_BY_KEY[k].label.toLowerCase()}`} onChange={onChange} />
+        <MetricInput key={k} set={set} hint={hint} k={k} distanceUnit={distanceUnit} label={`Interval ${label} ${METRIC_BY_KEY[k].label.toLowerCase()}`} onChange={onChange} />
       ))}
       <button type="button" aria-label="Interval options" onClick={() => { tap(); onMenu() }} className="press h-11 w-11 flex items-center justify-center text-faint active:text-text">
         <Icon.More />
@@ -518,15 +522,16 @@ function CardioRow({ set, label, metrics, distanceUnit, onChange, onMenu, onDele
   )
 }
 
-function MetricInput({ set, k, distanceUnit, label, onChange }: { set: SetDetail; k: MetricKey; distanceUnit: DistanceUnit; label: string; onChange: (p: SetPatch) => void }) {
+function MetricInput({ set, hint, k, distanceUnit, label, onChange }: { set: SetDetail; hint?: LastSet; k: MetricKey; distanceUnit: DistanceUnit; label: string; onChange: (p: SetPatch) => void }) {
   const def = METRIC_BY_KEY[k]
+  const placeholder = (hint && metricText(hint, k, distanceUnit)) || def.placeholder
   const f = useLocalField(metricText(set, k, distanceUnit), (text) => onChange(metricPatch(k, text, distanceUnit, set)))
   const clean = (v: string) => (k === 'time' ? v.replace(/[^\d:hms]/gi, '') : v)
   return (
     <input
       className={inputClass}
       inputMode={def.inputMode}
-      placeholder={def.placeholder}
+      placeholder={placeholder}
       value={f.v}
       onFocus={(e) => e.target.select()}
       onBlur={f.flush}

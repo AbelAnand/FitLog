@@ -87,3 +87,36 @@ describe('lists derived from the workout', () => {
     expect(next.map((r) => r.id).sort()).toEqual(['other', 's1', 's2', 's3'])
   })
 })
+
+describe('repeatExercises', () => {
+  it('copies the exercises with one empty set each, keeping units and order', () => {
+    const cardioSet: SetDetail = { ...set('c1', 1), unit: 'kg', duration_seconds: 1500, distance: 5, distance_unit: 'km' }
+    const source = workout([
+      exercise('a', 1, [set('a1', 1, 135, 8), { ...set('a2', 2, 135, 6), set_type: 'drop', drops: [{ weight: 100, reps: 10 }] }], { notes: 'felt heavy', completed_at: '2026-09-24T11:00:00.000Z', planned: true }),
+      exercise('b', 0, [cardioSet], { kind: 'cardio', metrics: ['time', 'distance'] }),
+      exercise('c', 2, []),
+    ])
+    let n = 0
+    const copies = opt.repeatExercises(source, { entry: () => `e${++n}`, set: () => `s${++n}` }, { planned: false, createdAt: '2026-10-05T10:00:00.000Z', unit: 'lb', distanceUnit: 'mi' })
+    expect(copies.map((we) => we.exercise_id)).toEqual(['ex-a', 'ex-b', 'ex-c'])
+    expect(copies.map((we) => we.position)).toEqual([1, 0, 2])
+    for (const we of copies) {
+      expect(we.sets).toHaveLength(1)
+      expect(we.notes).toBe('')
+      expect(we.completed_at).toBeNull()
+      expect(we.planned).toBe(false)
+      expect(we.sets[0]).toMatchObject({ set_number: 1, set_type: 'working', weight: 0, reps: 0, drops: [], duration_seconds: null, distance: null, created_at: '2026-10-05T10:00:00.000Z' })
+    }
+    expect(copies[0].sets[0].unit).toBe('lb')
+    expect(copies[1].sets[0]).toMatchObject({ unit: 'kg', distance_unit: 'km' })
+    expect(copies[2].sets[0]).toMatchObject({ unit: 'lb', distance_unit: null })
+    const ids = copies.flatMap((we) => [we.id, we.sets[0].id])
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids).not.toContain('a')
+  })
+
+  it('marks every exercise planned when basing a plan on last time', () => {
+    const copies = opt.repeatExercises(workout([exercise('a', 0, [set('a1', 1, 100, 5)])]), { entry: () => 'e', set: () => 's' }, { planned: true, createdAt: 'now', unit: 'kg', distanceUnit: 'km' })
+    expect(copies[0].planned).toBe(true)
+  })
+})

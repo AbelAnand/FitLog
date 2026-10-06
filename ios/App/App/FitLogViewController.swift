@@ -6,6 +6,7 @@ class FitLogViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(WidgetBridgePlugin())
         bridge?.registerPluginInstance(LocalStorePlugin())
+        bridge?.registerPluginInstance(BackGesturePlugin())
         NSLog("FitLog: in-app plugins registered")
 
         if let webView = bridge?.webView {

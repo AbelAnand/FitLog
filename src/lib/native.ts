@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 
 /** True when running inside the Capacitor iOS shell rather than a browser. */
 export const isNative = Capacitor.isNativePlatform()
@@ -11,4 +11,12 @@ export async function initNative(): Promise<void> {
   await StatusBar.setOverlaysWebView({ overlay: true })
   // Number pads have no return key; the accessory bar's Done button is how you leave them.
   await Keyboard.setAccessoryBarVisible({ isVisible: true }).catch(() => {})
+}
+
+const BackGesture = registerPlugin<{ setEnabled(options: { enabled: boolean }): Promise<void> }>('BackGesture')
+
+/** Switch the edge swipe-back gesture on or off (off while a screen has unsaved changes). */
+export async function setBackGesture(enabled: boolean): Promise<void> {
+  if (!isNative) return
+  await BackGesture.setEnabled({ enabled }).catch(() => {})
 }
