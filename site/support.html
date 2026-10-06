@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content="Help with FitLog: backups, moving to a new iPhone, records, streaks and reminders." />
+    <meta name="description" content="Help with SplitLog: backups, moving to a new iPhone, records, streaks and reminders." />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <title>Help and support · FitLog</title>
+    <title>Help and support · SplitLog</title>
     <style>
     :root { color-scheme: dark light; --bg:#0b0d10; --surface:#15181d; --text:#f2f4f7; --muted:#9aa2b0; --accent:#c6f135; --accent-ink:#0b0d10; --link:#c6f135; --border:#262b33; }
     @media (prefers-color-scheme: light) { :root { --bg:#f6f7f9; --surface:#ffffff; --text:#111418; --muted:#5f6773; --link:#3d5a00; --border:#e3e6eb; } }
@@ -57,7 +57,7 @@
   </head>
   <body>
     <main>
-      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" aria-hidden="true"><path d="M32.5 31v38M44.2 31v38M55.8 31v38M67.5 31v38"/><path d="M25.5 71.5 74.5 28.5" stroke-width="10"/></svg></span>FitLog</a><nav aria-label="Pages"><a href="./">Overview</a><a href="guide.html">How to use</a><a href="privacy.html">Privacy</a><a href="support.html" aria-current="page">Support</a></nav></header>
+      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 100 100" fill="currentColor" stroke="currentColor" aria-hidden="true"><line x1="14" y1="22" x2="86" y2="22" stroke-width="5.2" stroke-linecap="round"/><rect x="18.5" y="9.5" width="6.6" height="25.0" rx="1.6"/><rect x="74.9" y="9.5" width="6.6" height="25.0" rx="1.6"/><rect x="25.1" y="11.5" width="6.6" height="21.0" rx="1.6"/><rect x="68.3" y="11.5" width="6.6" height="21.0" rx="1.6"/><rect x="31.7" y="13.5" width="6.6" height="17.0" rx="1.6"/><rect x="61.7" y="13.5" width="6.6" height="17.0" rx="1.6"/><line x1="14" y1="50" x2="86" y2="50" stroke-width="5.2" stroke-linecap="round"/><rect x="18.5" y="41.2" width="6.2" height="17.5" rx="1.6"/><rect x="75.3" y="41.2" width="6.2" height="17.5" rx="1.6"/><rect x="24.7" y="43.0" width="6.2" height="14.0" rx="1.6"/><rect x="69.1" y="43.0" width="6.2" height="14.0" rx="1.6"/><line x1="14" y1="78" x2="86" y2="78" stroke-width="5.2" stroke-linecap="round"/><rect x="18.5" y="72.8" width="6.2" height="10.5" rx="1.6"/><rect x="75.3" y="72.8" width="6.2" height="10.5" rx="1.6"/></svg></span>SplitLog</a><nav aria-label="Pages"><a href="./">Overview</a><a href="guide.html">How to use</a><a href="privacy.html">Privacy</a><a href="support.html" aria-current="page">Support</a></nav></header>
       <h1>Help and support</h1>
       <p class="lead">Answers to common questions, and how to get in touch.</p>
 
@@ -76,7 +76,7 @@
           <span class="status" role="status" aria-live="polite"></span>
         </div>
       </form>
-      <p class="muted">Tickets are sent to <a href="mailto:dvapptester1@gmail.com">dvapptester1@gmail.com</a>, FitLog's support inbox, and are used only to answer you. If the form cannot send, it opens your mail app with the ticket filled in instead.</p>
+      <p class="muted">Tickets are sent to <a href="mailto:dvapptester1@gmail.com">dvapptester1@gmail.com</a>, SplitLog's support inbox, and are used only to answer you. If the form cannot send, it opens your mail app with the ticket filled in instead.</p>
       <script>
         (function () {
           var form = document.getElementById('ticket');
@@ -88,7 +88,7 @@
           }
           function viaMail(f) {
             var body = 'From: ' + f.email + '\n\n' + f.message;
-            location.href = 'mailto:' + form.dataset.to + '?subject=' + encodeURIComponent('[FitLog] ' + f.subject) + '&body=' + encodeURIComponent(body);
+            location.href = 'mailto:' + form.dataset.to + '?subject=' + encodeURIComponent('[SplitLog] ' + f.subject) + '&body=' + encodeURIComponent(body);
             say('Your mail app should open with the ticket filled in. Send it from there.');
           }
           form.addEventListener('submit', function (e) {
@@ -103,7 +103,7 @@
             fetch(form.dataset.endpoint, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-              body: JSON.stringify({ access_key: form.dataset.key, from_name: 'FitLog support form', subject: '[FitLog] ' + f.subject, email: f.email, replyto: f.email, message: f.message })
+              body: JSON.stringify({ access_key: form.dataset.key, from_name: 'SplitLog support form', subject: '[SplitLog] ' + f.subject, email: f.email, replyto: f.email, message: f.message })
             }).then(function (r) { return r.json(); }).then(function (j) {
               if (!j.success) throw new Error(j.message || 'rejected');
               form.reset(); say('Sent. You will get a reply at the address you gave.');
@@ -114,17 +114,17 @@
         })();
       </script>
 
-      <p>For a full walk-through of the app, see <a href="guide.html">How to use FitLog</a>.</p>
+      <p>For a full walk-through of the app, see <a href="guide.html">How to use SplitLog</a>.</p>
 
       <h2>Your data</h2>
       <h3>Where are my workouts stored?</h3>
-      <p>On your iPhone, inside the app. FitLog has no accounts and no server. See the <a href="privacy.html">privacy policy</a>.</p>
+      <p>On your iPhone, inside the app. SplitLog has no accounts and no server. See the <a href="privacy.html">privacy policy</a>.</p>
       <h3>I got a new iPhone. How do I bring my workouts?</h3>
       <p>Follow <a href="guide.html#newphone">Moving to a new iPhone</a>. In short: save a backup file on the old phone first, then restore it on the new one if the workouts did not arrive by themselves.</p>
-      <h3>I deleted FitLog, or lost my iPhone. Can my workouts be recovered?</h3>
-      <p>Only from a copy you made: a FitLog backup file, a spreadsheet export, or an iPhone backup from before the loss. The developer has no copy and cannot recover it for you.</p>
-      <h3>The restore says my file is not a FitLog backup</h3>
-      <p>Pick the file that FitLog saved, whose name starts with <em>fitlog-backup</em> and ends in <em>.json</em>, or a spreadsheet that FitLog exported, ending in <em>.csv</em>. Files that were edited by hand or made by another app may not be readable.</p>
+      <h3>I deleted SplitLog, or lost my iPhone. Can my workouts be recovered?</h3>
+      <p>Only from a copy you made: a SplitLog backup file, a spreadsheet export, or an iPhone backup from before the loss. The developer has no copy and cannot recover it for you.</p>
+      <h3>The restore says my file is not a SplitLog backup</h3>
+      <p>Pick the file that SplitLog saved, whose name starts with <em>fitlog-backup</em> and ends in <em>.json</em>, or a spreadsheet that SplitLog exported, ending in <em>.csv</em>. Files that were edited by hand or made by another app may not be readable.</p>
       <h3>How do I delete a set or a workout?</h3>
       <p>Swipe it to the left. A short swipe shows a Delete button, and a long swipe deletes it straight away. You can also hold a workout to see its options.</p>
       <h3>How do I delete everything?</h3>
@@ -136,20 +136,20 @@
       <h3>How does the streak work?</h3>
       <p>A week counts when you train on at least as many different days as your weekly goal. Weeks run Monday to Sunday. You can change the goal in Settings.</p>
       <h3>Reminders are not showing up</h3>
-      <p>Check that notifications are allowed in iPhone Settings, then Notifications, then FitLog, and that reminders are switched on in the app's Settings. A Focus mode can also silence them.</p>
+      <p>Check that notifications are allowed in iPhone Settings, then Notifications, then SplitLog, and that reminders are switched on in the app's Settings. A Focus mode can also silence them.</p>
       <h3>The widget shows old numbers</h3>
-      <p>The widget updates when you open FitLog. Open the app once and return to the Home Screen.</p>
-      <h3>FitLog says it couldn't open my log</h3>
-      <p>Close FitLog completely and open it again. If the message returns, free up storage space on the iPhone and restart it. Your earlier workouts are still stored. If it keeps happening, send a ticket above before deleting the app, as deleting it removes the log.</p>
+      <p>The widget updates when you open SplitLog. Open the app once and return to the Home Screen.</p>
+      <h3>SplitLog says it couldn't open my log</h3>
+      <p>Close SplitLog completely and open it again. If the message returns, free up storage space on the iPhone and restart it. Your earlier workouts are still stored. If it keeps happening, send a ticket above before deleting the app, as deleting it removes the log.</p>
 
-      <h2>About FitLog</h2>
-      <h3>Is FitLog really free?</h3>
+      <h2>About SplitLog</h2>
+      <h3>Is SplitLog really free?</h3>
       <p>Yes. There are no subscriptions, no ads and no locked features.</p>
       <h3>Is there a version for Android or the web?</h3>
-      <p>No. FitLog is an iPhone app.</p>
+      <p>No. SplitLog is an iPhone app.</p>
 
       <footer>
-        FitLog is made by Abel Anand. <a href="guide.html">How to use</a> · <a href="privacy.html">Privacy policy</a> · <a href="support.html">Help and support</a>
+        SplitLog is made by Abel Anand. <a href="guide.html">How to use</a> · <a href="privacy.html">Privacy policy</a> · <a href="support.html">Help and support</a>
       </footer>
     </main>
     <script>

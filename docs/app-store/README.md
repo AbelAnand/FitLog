@@ -1,8 +1,10 @@
 # App Store submission kit
 
-Everything needed to submit FitLog 1.0, in the order you will need it.
+The app is called SplitLog. The bundle id, the URL scheme, the repository and the web address keep `fitlog`; that is invisible to users and to App Review.
 
-FitLog keeps its data on the iPhone. There is no server, no account and nothing to configure, so
+Everything needed to submit SplitLog 1.0, in the order you will need it.
+
+SplitLog keeps its data on the iPhone. There is no server, no account and nothing to configure, so
 the only things to do before submitting are to publish the public pages and test on a real phone.
 
 ## 1. Before you archive
@@ -32,7 +34,7 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 
 | Field | Value |
 |---|---|
-| Name | FitLog is taken on the App Store several times over; use a distinctive full name such as "FitLog: Private Workout Log", or pick a new brand before launch (see the name note below). |
+| Name | SplitLog (fallback if taken: "SplitLog: Workout Tracker") |
 | Subtitle | Private workout & PR tracker |
 | Category | Health & Fitness |
 | Age rating | 4+ (answer "None" to every content question) |
@@ -52,7 +54,7 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 
 **Description**
 
-> FitLog is a fast, free workout log that keeps your training on your iPhone. No account, no ads, no subscription, and nothing locked behind a paywall.
+> SplitLog is a fast, free workout log that keeps your training on your iPhone. No account, no ads, no subscription, and nothing locked behind a paywall.
 >
 > LOG A WORKOUT IN SECONDS
 > • Open the app and start. There is nothing to sign up for.
@@ -102,7 +104,7 @@ declares no collected data and no tracking. The app makes no network requests at
 - **Sign-in required:** no. There are no accounts, so no demo account is needed.
 - **Notes for the reviewer:**
 
-> FitLog is a workout log. It opens straight to the Home screen with nothing to sign in to.
+> SplitLog is a workout log. It opens straight to the Home screen with nothing to sign in to.
 > Tap "Start workout", choose a title, add an exercise and type a weight and reps.
 > All data is stored on the device. The app makes no network requests and collects no data.
 > Backup, restore and erase are in Settings → Your data.
@@ -118,7 +120,7 @@ Install the archive through TestFlight and run this once.
 2. Turn on Airplane Mode and log a workout. Everything must work as normal.
 3. Log a weight above your best: the PR badge shows in full.
 4. Settings → **Save a backup** → Save to Files. Then **Restore from a file** and pick it. The sheet must list your workouts.
-5. Force-quit FitLog and open it again. Your workouts are there.
+5. Force-quit SplitLog and open it again. Your workouts are there.
 6. Add both widgets to the Home Screen and tap each. Add the Start workout widget to the Lock Screen, and the Start workout control to a Lock Screen corner (hold the Lock Screen, Customize, tap the corner button). Each must open the start sheet.
 7. Turn on a reminder and confirm iPhone asks for permission. On a fresh install, the permission question must not appear at launch or when starting a workout: it appears only from the Settings toggles.
 8. Open a finished workout, change a set, and swipe from the left edge: nothing should happen while the change is unsaved. Tap back: the Save / Discard question appears. Discard, reopen the workout, and confirm the set is unchanged.
@@ -127,7 +129,7 @@ Install the archive through TestFlight and run this once.
 ## 7. Moving your own data into this version
 
 Your workouts from the online version were copied to
-`~/Documents/FitLog Backups/fitlog-backup-2026-09-29-server-copy.json` on 2026-09-29, and the
+`~/Documents/SplitLog Backups/fitlog-backup-2026-09-29-server-copy.json` on 2026-09-29, and the
 server still holds them.
 
 1. If you logged anything after that copy was made, take a fresh one: `npm run export:server`.

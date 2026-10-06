@@ -18,7 +18,7 @@ enum StartWorkoutRequest {
 @available(iOS 18.0, *)
 struct StartWorkoutIntent: AppIntent {
     static let title: LocalizedStringResource = "Start workout"
-    static let description = IntentDescription("Opens FitLog ready to start a workout.")
+    static let description = IntentDescription("Opens SplitLog ready to start a workout.")
     static let openAppWhenRun = true
 
     @MainActor

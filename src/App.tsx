@@ -23,7 +23,7 @@ const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (err, _vars, _ctx, mutation) => {
       toast(`${mutation.meta?.error ?? "That didn't go through."} ${explainSaveError(err)}`, 'error', 6000)
-      console.error('FitLog: write failed', err)
+      console.error('SplitLog: write failed', err)
     },
   }),
 })
@@ -69,7 +69,7 @@ function DataGate({ children }: { children: ReactNode }) {
     db.open().then(
       () => alive && setState('ready'),
       (e) => {
-        console.error('FitLog: could not open the log', e)
+        console.error('SplitLog: could not open the log', e)
         if (alive) setState('failed')
       },
     )
@@ -81,8 +81,8 @@ function DataGate({ children }: { children: ReactNode }) {
   if (state === 'opening') return <Spinner className="pt-32" />
   return (
     <main className="min-h-dvh mx-auto max-w-sm px-6 pt-safe pb-safe flex flex-col justify-center text-center">
-      <h1 className="text-[22px] font-bold">FitLog couldn't open your log</h1>
-      <p className="mt-2 text-muted text-[15px]">Your workouts are still on this iPhone. Close FitLog completely and open it again. If this keeps happening, free up some storage space.</p>
+      <h1 className="text-[22px] font-bold">SplitLog couldn't open your log</h1>
+      <p className="mt-2 text-muted text-[15px]">Your workouts are still on this iPhone. Close SplitLog completely and open it again. If this keeps happening, free up some storage space.</p>
       <Button size="lg" className="mt-6" onClick={() => { setState('opening'); setAttempt((n) => n + 1) }}>Try again</Button>
     </main>
   )

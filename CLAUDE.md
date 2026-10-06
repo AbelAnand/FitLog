@@ -1,4 +1,6 @@
-# FitLog — notes for Claude
+# SplitLog (repo FitLog) — notes for Claude
+
+- **Name:** the product is SplitLog since 2026-10-06. The repository, the Pages address, the bundle id `com.abelanand.fitlog`, the `fitlog://` scheme, the storage folder and the backup file marker `app: "FitLog"` deliberately keep the old name; only what users read changed.
 
 - Free workout tracker for iPhone, a **native Capacitor app** (`ios/`, bundle id `com.abelanand.fitlog`, signing team Q4X5P825Z6), heading for the App Store. Made by Abel, who also uses it daily, so his log is real data.
 - **Everything is stored on the device. There is no server, no account, and the app makes no network requests.** Do not add any without Abel deciding to: "Data Not Collected" is the product's promise and its App Store privacy label.

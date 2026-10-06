@@ -163,7 +163,7 @@ describe('failed saves', () => {
   it('explains the cause in plain words', () => {
     expect(explainSaveError(new Error('disk full'))).toMatch(/out of storage space/)
     expect(explainSaveError(new Error('Workout not found'))).toMatch(/no longer exists/)
-    expect(explainSaveError(null)).toMatch(/Close FitLog/)
+    expect(explainSaveError(null)).toMatch(/Close SplitLog/)
   })
 })
 

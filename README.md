@@ -1,8 +1,8 @@
-# FitLog
+# SplitLog
 
 A free workout log for iPhone. Log each session (title, exercises, per-set weight × reps, notes), keep a weekly-goal streak, and watch your top-set weight climb per exercise.
 
-**Your log stays on your iPhone.** FitLog has no accounts and no server, and makes no network requests. You can save a backup file, export a spreadsheet, or erase everything at any time.
+**Your log stays on your iPhone.** SplitLog has no accounts and no server, and makes no network requests. You can save a backup file, export a spreadsheet, or erase everything at any time.
 
 Features: set types (warm-up / working / drop / to failure), fill-down and quick-fill for repeated sets, per-exercise notes, title-aware exercise suggestions, cardio with configurable figures, planned workouts, pause and resume, daily and in-gym reminders, a Home Screen widget, six themes, backup and restore.
 
@@ -44,4 +44,4 @@ The App Store listing text, screenshots, privacy answers and submission steps ar
 
 ## History
 
-FitLog began as an online app backed by Supabase. `supabase/` keeps that schema for the record, and `npm run export:server` downloads an account's data from it as a backup file the app can restore.
+SplitLog began as an online app backed by Supabase. `supabase/` keeps that schema for the record, and `npm run export:server` downloads an account's data from it as a backup file the app can restore.
