@@ -92,9 +92,13 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
 
   if (!open) return null
 
+  // Closing slides the sheet from wherever it is (fully open, or part-way down after a drag) to
+  // off-screen, so a drag never snaps back up before leaving.
+  const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   const dismiss = () => {
+    setDragging(false)
     setClosing(true)
-    window.setTimeout(onClose, 200)
+    window.setTimeout(onClose, reduced ? 0 : 260)
   }
 
   const onTouchStart = (e: RTouchEvent) => {
@@ -133,10 +137,10 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
       <button type="button" aria-label="Close" className={`absolute inset-0 bg-black/60 ${closing ? 'sheet-backdrop-out' : 'sheet-backdrop-in'}`} onClick={dismiss} />
       <div
-        className={`relative w-full max-w-lg mx-auto bg-surface rounded-t-[24px] border-t border-border/60 max-h-[88dvh] flex flex-col pb-safe ${closing ? 'sheet-out' : dragging || dy ? '' : 'sheet-in'}`}
+        className={`relative w-full max-w-lg mx-auto bg-surface rounded-t-[24px] border-t border-border/60 max-h-[88dvh] flex flex-col pb-safe ${closing || dragging || dy ? '' : 'sheet-in'}`}
         style={{
-          transform: closing ? undefined : `translateY(${dy}px)`,
-          transition: dragging ? 'none' : 'transform 260ms cubic-bezier(.2,.8,.2,1)',
+          transform: closing ? 'translateY(100%)' : `translateY(${dy}px)`,
+          transition: dragging || reduced ? 'none' : `transform 260ms ${closing ? 'ease-in' : 'cubic-bezier(.2,.8,.2,1)'}`,
           touchAction: dragging ? 'none' : undefined,
         }}
         onTouchStart={onTouchStart}

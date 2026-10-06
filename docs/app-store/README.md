@@ -72,7 +72,7 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 > • Pause, resume, and reopen sessions. Log a workout for a past date.
 >
 > MADE FOR iPHONE
-> • Home Screen widget with your streak and week.
+> • Home Screen widgets for your streak and for starting a workout, a Lock Screen widget, and a Lock Screen or Control Center button.
 > • Optional reminders, scheduled on your phone.
 > • Six themes. Pounds or kilograms, miles or kilometres.
 >
@@ -118,7 +118,7 @@ Install the archive through TestFlight and run this once.
 3. Log a weight above your best: the PR badge shows in full.
 4. Settings → **Save a backup** → Save to Files. Then **Restore from a file** and pick it. The sheet must list your workouts.
 5. Force-quit FitLog and open it again. Your workouts are there.
-6. Add the widget to the Home Screen and tap it.
+6. Add both widgets to the Home Screen and tap each. Add the Start workout widget to the Lock Screen, and the Start workout control to a Lock Screen corner (hold the Lock Screen, Customize, tap the corner button). Each must open the start sheet.
 7. Turn on a reminder and confirm iPhone asks for permission. On a fresh install, the permission question must not appear at launch or when starting a workout: it appears only from the Settings toggles.
 8. Open a finished workout, change a set, and swipe from the left edge: nothing should happen while the change is unsaved. Tap back: the Save / Discard question appears. Discard, reopen the workout, and confirm the set is unchanged.
 9. Open a finished workout, change a set, tap Save, then force-quit and reopen: the change is there.
