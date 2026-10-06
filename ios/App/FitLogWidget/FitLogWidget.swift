@@ -267,19 +267,6 @@ struct StartWorkoutWidget: Widget {
     }
 }
 
-/// Opens the app on the start sheet; used by the Control Center / Lock Screen control.
-@available(iOS 18.0, *)
-struct StartWorkoutIntent: AppIntent {
-    static let title: LocalizedStringResource = "Start workout"
-    static let description = IntentDescription("Opens FitLog ready to start a workout.")
-    static let openAppWhenRun = true
-
-    @MainActor
-    func perform() async throws -> some IntentResult & OpensIntent {
-        .result(opensIntent: OpenURLIntent(URL(string: "fitlog://start")!))
-    }
-}
-
 /// A control like the flashlight: add it to the Lock Screen corners or Control Center.
 @available(iOS 18.0, *)
 struct StartWorkoutControl: ControlWidget {
