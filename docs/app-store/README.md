@@ -32,13 +32,13 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 
 | Field | Value |
 |---|---|
-| Name | FitLog (if taken: "FitLog: Workout Tracker") |
+| Name | FitLog is taken on the App Store several times over; use a distinctive full name such as "FitLog: Private Workout Log", or pick a new brand before launch (see the name note below). |
 | Subtitle | Private workout & PR tracker |
 | Category | Health & Fitness |
 | Age rating | 4+ (answer "None" to every content question) |
 | Price | Free |
 | Privacy Policy URL | https://abelanand.github.io/FitLog/privacy.html |
-| Support URL | https://abelanand.github.io/FitLog/support.html |
+| Support URL | https://abelanand.github.io/FitLog/support.html (ticket form, delivered to dvapptester1@gmail.com) |
 | Marketing URL | https://abelanand.github.io/FitLog/ |
 | Copyright | 2026 Abel Anand |
 
@@ -86,8 +86,9 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 
 > First release.
 
-**Screenshots**: `screenshots/` holds five 1320 × 2868 images (iPhone 6.9"), in order. That one size
-covers every iPhone. They show example data made by the simulator test build, not anyone's real log.
+**Screenshots**: `screenshots/` holds five 1320 × 2868 images (iPhone 6.9"), in order: Home, a workout,
+Progress, the Year view of History, and Settings with the backup tools. That one size covers every iPhone.
+They show example data made by the simulator test build, not anyone's real log. Refreshed 2026-10-06.
 
 ## 4. App Privacy answers
 

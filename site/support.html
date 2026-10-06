@@ -42,15 +42,77 @@
     kbd { font:600 14px/1 -apple-system,system-ui,sans-serif; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:3px 7px; white-space:nowrap; }
     footer { margin-top:56px; padding-top:20px; border-top:1px solid var(--border); font-size:14px; color:var(--muted); }
     footer a { color:var(--muted); }
-    </style>
+      .ticket { display:grid; gap:8px; margin:12px 0 8px; }
+    .ticket label { font-size:14px; color:var(--muted); font-weight:600; margin-top:6px; }
+    .ticket input[type="email"], .ticket input[type="text"], .ticket textarea { width:100%; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; outline:none; }
+    .ticket input:focus, .ticket textarea:focus { border-color:var(--accent); }
+    .ticket textarea { resize:vertical; min-height:140px; }
+    .ticket .hp { position:absolute; left:-9999px; width:1px; height:1px; opacity:0; }
+    .ticket-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:4px; }
+    .btn { font:600 16px/1 inherit; font-family:inherit; background:var(--accent); color:var(--accent-ink); border:0; border-radius:12px; padding:14px 20px; cursor:pointer; }
+    .btn:disabled { opacity:.6; }
+    .status { font-size:14px; color:var(--muted); }
+    .status.bad { color:#ff6b6b; }
+  </style>
   </head>
   <body>
     <main>
-      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg></span>FitLog</a><nav aria-label="Pages"><a href="./">Overview</a><a href="guide.html">How to use</a><a href="privacy.html">Privacy</a><a href="support.html" aria-current="page">Support</a></nav></header>
+      <header class="top"><a class="brand" href="./"><span class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" aria-hidden="true"><path d="M32.5 31v38M44.2 31v38M55.8 31v38M67.5 31v38"/><path d="M25.5 71.5 74.5 28.5" stroke-width="10"/></svg></span>FitLog</a><nav aria-label="Pages"><a href="./">Overview</a><a href="guide.html">How to use</a><a href="privacy.html">Privacy</a><a href="support.html" aria-current="page">Support</a></nav></header>
       <h1>Help and support</h1>
       <p class="lead">Answers to common questions, and how to get in touch.</p>
 
-      <div class="card"><p><strong>Get in touch.</strong> Report a problem or ask a question on the <a href="https://github.com/AbelAnand/FitLog/issues">FitLog issue tracker</a>. Posts there are public, so leave out anything private. Say which iPhone and iOS version you use, and what you did just before the problem.</p></div>
+      <h2 id="contact">Send a support ticket</h2>
+      <p>Describe the problem or question and it goes straight to the support inbox. Include the email you want the answer sent to.</p>
+      <form id="ticket" class="ticket" data-endpoint="https://api.web3forms.com/submit" data-key="" data-to="dvapptester1@gmail.com" novalidate>
+        <label for="t-email">Your email</label>
+        <input id="t-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@gmail.com" required />
+        <label for="t-title">Title</label>
+        <input id="t-title" name="subject" type="text" maxlength="120" placeholder="What is it about?" required />
+        <label for="t-body">Describe the issue</label>
+        <textarea id="t-body" name="message" rows="6" maxlength="4000" placeholder="What happened, what you expected, and the steps to get there. Mention your iPhone model and iOS version if it is about a bug." required></textarea>
+        <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <div class="ticket-actions">
+          <button type="submit" class="btn">Send ticket</button>
+          <span class="status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+      <p class="muted">Tickets are sent to <a href="mailto:dvapptester1@gmail.com">dvapptester1@gmail.com</a>, FitLog's support inbox, and are used only to answer you. If the form cannot send, it opens your mail app with the ticket filled in instead.</p>
+      <script>
+        (function () {
+          var form = document.getElementById('ticket');
+          var status = form.querySelector('.status');
+          var button = form.querySelector('button');
+          function say(text, bad) { status.textContent = text; status.className = 'status' + (bad ? ' bad' : ''); }
+          function fields() {
+            return { email: form.email.value.trim(), subject: form.subject.value.trim(), message: form.message.value.trim() };
+          }
+          function viaMail(f) {
+            var body = 'From: ' + f.email + '\n\n' + f.message;
+            location.href = 'mailto:' + form.dataset.to + '?subject=' + encodeURIComponent('[FitLog] ' + f.subject) + '&body=' + encodeURIComponent(body);
+            say('Your mail app should open with the ticket filled in. Send it from there.');
+          }
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var f = fields();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) { say('Enter the email address you want the answer sent to.', true); form.email.focus(); return; }
+            if (!f.subject) { say('Give the ticket a title.', true); form.subject.focus(); return; }
+            if (!f.message) { say('Describe the issue.', true); form.message.focus(); return; }
+            if (form.botcheck.checked) { return; }
+            if (!form.dataset.key) { viaMail(f); return; }
+            button.disabled = true; say('Sending…');
+            fetch(form.dataset.endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ access_key: form.dataset.key, from_name: 'FitLog support form', subject: '[FitLog] ' + f.subject, email: f.email, replyto: f.email, message: f.message })
+            }).then(function (r) { return r.json(); }).then(function (j) {
+              if (!j.success) throw new Error(j.message || 'rejected');
+              form.reset(); say('Sent. You will get a reply at the address you gave.');
+            }).catch(function () {
+              say('Could not send from here, opening your mail app instead.', true); viaMail(f);
+            }).finally(function () { button.disabled = false; });
+          });
+        })();
+      </script>
 
       <p>For a full walk-through of the app, see <a href="guide.html">How to use FitLog</a>.</p>
 
@@ -78,7 +140,7 @@
       <h3>The widget shows old numbers</h3>
       <p>The widget updates when you open FitLog. Open the app once and return to the Home Screen.</p>
       <h3>FitLog says it couldn't open my log</h3>
-      <p>Close FitLog completely and open it again. If the message returns, free up storage space on the iPhone and restart it. Your earlier workouts are still stored. If it keeps happening, get in touch before deleting the app, as deleting it removes the log.</p>
+      <p>Close FitLog completely and open it again. If the message returns, free up storage space on the iPhone and restart it. Your earlier workouts are still stored. If it keeps happening, send a ticket above before deleting the app, as deleting it removes the log.</p>
 
       <h2>About FitLog</h2>
       <h3>Is FitLog really free?</h3>
