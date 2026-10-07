@@ -25,7 +25,7 @@ npm run ios          # opens Xcode
 
 In Xcode choose **Any iOS Device**, then **Product → Archive → Distribute App → App Store Connect**.
 The project is already set to version 1.0 (build 1), iPhone only, portrait, no export-compliance prompt.
-Raise the build number for every later upload.
+Raise the build number for every later upload (build 1 was uploaded on 2026-10-07; the next is 2).
 
 Do not archive after `vite build --mode simtest`: that bundle contains the simulator test tools.
 `npm run build:ios` always produces a clean one.
@@ -88,7 +88,7 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 
 > First release.
 
-**Screenshots**: `screenshots/` holds five 1320 × 2868 images (iPhone 6.9"), in order: Home, a workout,
+**Screenshots**: `screenshots/` holds five 1320 × 2868 images (iPhone 6.9") and `screenshots-6.3/` the same five at 1206 × 2622, which is what the iPhone 6.1"/6.3" box in App Store Connect accepts. In order: Home, a workout,
 Progress, the Year view of History, and Settings with the backup tools. That one size covers every iPhone.
 They show example data made by the simulator test build, not anyone's real log. Refreshed 2026-10-06.
 
