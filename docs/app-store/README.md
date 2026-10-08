@@ -24,7 +24,7 @@ npm run ios          # opens Xcode
 ```
 
 In Xcode choose **Any iOS Device**, then **Product → Archive → Distribute App → App Store Connect**.
-The project is already set to version 1.0 (build 1), iPhone only, portrait, no export-compliance prompt.
+The project is set to version 1.0.1 (build 2); 1.0 (1) was approved on 2026-10-07, iPhone only, portrait, no export-compliance prompt.
 Raise the build number for every later upload (build 1 was uploaded on 2026-10-07; the next is 2).
 
 Do not archive after `vite build --mode simtest`: that bundle contains the simulator test tools.
@@ -39,9 +39,9 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 | Category | Health & Fitness |
 | Age rating | 4+ (answer "None" to every content question) |
 | Price | Free |
-| Privacy Policy URL | https://abelanand.github.io/FitLog/privacy.html |
-| Support URL | https://abelanand.github.io/FitLog/support.html (ticket form, delivered to dvapptester1@gmail.com) |
-| Marketing URL | https://abelanand.github.io/FitLog/ |
+| Privacy Policy URL | https://abelanand.github.io/SplitLog/privacy.html |
+| Support URL | https://abelanand.github.io/SplitLog/support.html (ticket form, delivered to dvapptester1@gmail.com) |
+| Marketing URL | https://abelanand.github.io/SplitLog/ |
 | Copyright | 2026 Abel Anand |
 
 **Promotional text** (170 max)
