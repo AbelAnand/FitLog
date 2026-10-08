@@ -1,5 +1,5 @@
 /** SplitLog's public pages (the address keeps the old name). */
-export const WEB_URL = 'https://abelanand.github.io/FitLog/'
+export const WEB_URL = 'https://abelanand.github.io/SplitLog/'
 export const PRIVACY_URL = `${WEB_URL}privacy.html`
 export const SUPPORT_URL = `${WEB_URL}support.html`
 export const GUIDE_URL = `${WEB_URL}guide.html`

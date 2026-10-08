@@ -6,7 +6,7 @@ A free workout log for iPhone. Log each session (title, exercises, per-set weigh
 
 Features: set types (warm-up / working / drop / to failure), fill-down and quick-fill for repeated sets, per-exercise notes, title-aware exercise suggestions, cardio with configurable figures, planned workouts, pause and resume, daily and in-gym reminders, a Home Screen widget, six themes, backup and restore.
 
-Public pages: [overview](https://abelanand.github.io/FitLog/) · [how to use](https://abelanand.github.io/FitLog/guide.html) · [privacy policy](https://abelanand.github.io/FitLog/privacy.html) · [support](https://abelanand.github.io/FitLog/support.html)
+Public pages: [overview](https://abelanand.github.io/SplitLog/) · [how to use](https://abelanand.github.io/SplitLog/guide.html) · [privacy policy](https://abelanand.github.io/SplitLog/privacy.html) · [support](https://abelanand.github.io/SplitLog/support.html)
 
 ## Install on an iPhone from source
 
