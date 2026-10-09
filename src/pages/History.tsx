@@ -32,7 +32,7 @@ export function HistoryPage() {
 
   return (
     <>
-      <PageTitle title="History" right={<Segmented value={view} options={[{ value: 'month', label: 'Month' }, { value: 'year', label: 'Year' }]} onChange={(v) => { setView(v); setSelected(null) }} />} />
+      <PageTitle title="Calendar" right={<Segmented value={view} options={[{ value: 'month', label: 'Month' }, { value: 'year', label: 'Year' }]} onChange={(v) => { setView(v); setSelected(null) }} />} />
       {isLoading ? (
         <Spinner />
       ) : view === 'year' ? (
