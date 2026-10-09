@@ -13,8 +13,12 @@ import { updateWidget } from '../lib/widget'
 import { exportCsv, setsToCsv, shareTextFile } from '../lib/csv'
 import { isNative } from '../lib/native'
 import { DEFAULT_SETTINGS, loadReminderSettings, requestNotificationPermission, saveReminderSettings, syncDailyReminder, type ReminderSettings } from '../lib/notifications'
-import { Button, Icon, PageTitle, Segmented, Sheet, Stepper, TextInput, Toggle } from '../components/ui'
-import { THEMES, saveTheme, useTheme } from '../lib/theme'
+import { Button, Icon, MenuSheet, PageTitle, Segmented, Sheet, Stepper, TextInput, Toggle } from '../components/ui'
+import { ThemeEditorSheet, ThemeImportSheet } from '../components/ThemeEditor'
+import { MAX_CUSTOM_THEMES, THEMES, ThemeLimitError, customMeta, deleteCustomTheme, importCustomTheme, saveCustomTheme, saveTheme, themeMeta, useCustomThemes, useTheme, type CustomTheme, type ThemeMeta } from '../lib/theme'
+import { encodeThemeCode } from '../lib/theme-code'
+import { shareText } from '../lib/share-text'
+import { useLongPress } from '../lib/useLongPress'
 import { tap } from '../lib/haptics'
 import type { DistanceUnit, Unit } from '../lib/units'
 
@@ -120,6 +124,67 @@ export function SettingsPage() {
 
   const goal = profile?.weekly_goal ?? 4
   const theme = useTheme()
+  const custom = useCustomThemes()
+  const themeTiles: ThemeMeta[] = [...THEMES, ...custom.map(customMeta)]
+  const [editor, setEditor] = useState<{ open: boolean; theme: CustomTheme | null }>({ open: false, theme: null })
+  const [importing, setImporting] = useState(false)
+  const [themeMenu, setThemeMenu] = useState<CustomTheme | null>(null)
+  const [deletingTheme, setDeletingTheme] = useState<CustomTheme | null>(null)
+
+  const createTheme = () => {
+    tap()
+    if (custom.length >= MAX_CUSTOM_THEMES) {
+      toast(new ThemeLimitError().message, 'info')
+      return
+    }
+    setEditor({ open: true, theme: null })
+  }
+
+  const saveOwnTheme = async (t: CustomTheme) => {
+    const isNew = !editor.theme
+    try {
+      const saved = await saveCustomTheme(t)
+      if (isNew) await saveTheme(saved.id)
+      setEditor((e) => ({ ...e, open: false }))
+      toast(isNew ? `“${saved.name}” is your theme now.` : `Saved “${saved.name}”.`, 'info')
+    } catch (e) {
+      toast(e instanceof ThemeLimitError ? e.message : "Couldn't save the theme.")
+    }
+  }
+
+  const shareTheme = async (t: CustomTheme) => {
+    tap()
+    const code = encodeThemeCode(t)
+    try {
+      const result = await shareText(`My SplitLog theme “${t.name}”\n${code}\n\nIn SplitLog: Settings → Appearance → Import a theme.`, `SplitLog theme: ${t.name}`)
+      if (result === 'copied') toast('Theme code copied.', 'info')
+    } catch {
+      toast("Couldn't share the theme. Try again.")
+    }
+  }
+
+  const importTheme = async (decoded: Omit<CustomTheme, 'id'>) => {
+    try {
+      const { theme: saved, updated } = await importCustomTheme(decoded)
+      await saveTheme(saved.id)
+      setImporting(false)
+      toast(updated ? `Updated “${saved.name}” and switched to it.` : `“${saved.name}” is your theme now.`, 'info')
+    } catch (e) {
+      toast(e instanceof ThemeLimitError ? e.message : "Couldn't save the theme.")
+    }
+  }
+
+  const removeTheme = async (t: CustomTheme) => {
+    try {
+      await deleteCustomTheme(t.id)
+      setDeletingTheme(null)
+      setEditor((e) => ({ ...e, open: false }))
+      toast(`Deleted “${t.name}”.`, 'info')
+    } catch {
+      toast("Couldn't delete the theme.")
+    }
+  }
+
   const timeValue = `${String(rem.hour).padStart(2, '0')}:${String(rem.minute).padStart(2, '0')}`
 
   return (
@@ -129,29 +194,15 @@ export function SettingsPage() {
       <Section title="Appearance">
         <div className="px-4 py-3">
           <div className="grid grid-cols-3 gap-2">
-            {THEMES.map((t) => {
-              const active = t.id === theme
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => { tap(); saveTheme(t.id) }}
-                  aria-pressed={active}
-                  className={`press-soft rounded-2xl p-2 text-left border-2 ${active ? 'border-accent' : 'border-transparent'}`}
-                >
-                  <div className="h-14 rounded-xl overflow-hidden flex flex-col p-2 gap-1.5" style={{ background: t.swatch[0] }}>
-                    <div className="h-2.5 w-2/3 rounded-full" style={{ background: t.swatch[3], opacity: 0.9 }} />
-                    <div className="flex gap-1.5 items-end flex-1">
-                      <div className="h-full flex-1 rounded-md" style={{ background: t.swatch[1] }} />
-                      <div className="h-4 w-8 rounded-full" style={{ background: t.swatch[2] }} />
-                    </div>
-                  </div>
-                  <div className="mt-1.5 text-[13px] font-medium">{t.name}</div>
-                  <div className="text-[11px] text-muted leading-tight">{t.tagline}</div>
-                </button>
-              )
-            })}
+            {themeTiles.map((t) => (
+              <ThemeTile key={t.id} meta={t} active={t.id === theme} onSelect={() => { tap(); saveTheme(t.id) }} onHold={t.custom ? () => setThemeMenu(t.custom!) : undefined} />
+            ))}
           </div>
+          <div className="flex gap-2 mt-3">
+            <Button variant="secondary" size="sm" className="flex-1" onClick={createTheme}><Icon.Plus /> Create your own</Button>
+            <Button variant="secondary" size="sm" className="flex-1" onClick={() => { tap(); setImporting(true) }}>Import a theme</Button>
+          </div>
+          {custom.length > 0 && <div className="mt-2 text-[12px] text-muted">Hold one of your themes to edit, share or delete it.</div>}
         </div>
       </Section>
 
@@ -289,7 +340,66 @@ export function SettingsPage() {
         </div>
       </Sheet>
 
+      <ThemeEditorSheet
+        open={editor.open}
+        initial={editor.theme}
+        seed={themeMeta(theme) ?? THEMES[0]}
+        onClose={() => setEditor((e) => ({ ...e, open: false }))}
+        onSave={saveOwnTheme}
+        onShare={shareTheme}
+        onDelete={(t) => setDeletingTheme(t)}
+      />
+
+      <ThemeImportSheet open={importing} onClose={() => setImporting(false)} onImport={importTheme} />
+
+      <MenuSheet
+        open={!!themeMenu}
+        onClose={() => setThemeMenu(null)}
+        title={themeMenu?.name}
+        subtitle={themeMenu ? `${themeMenu.light ? 'Light' : 'Dark'} theme, made by you` : undefined}
+        items={[
+          { label: 'Use this theme', icon: <Icon.Check />, onClick: () => { if (themeMenu) saveTheme(themeMenu.id) } },
+          { label: 'Edit', icon: <Icon.Note />, onClick: () => { if (themeMenu) setEditor({ open: true, theme: themeMenu }) } },
+          { label: 'Share', icon: <Icon.Share />, onClick: () => { if (themeMenu) shareTheme(themeMenu) } },
+          { label: 'Delete', icon: <Icon.Trash />, danger: true, onClick: () => { if (themeMenu) setDeletingTheme(themeMenu) } },
+        ]}
+      />
+
+      <Sheet open={!!deletingTheme} onClose={() => setDeletingTheme(null)} title={`Delete “${deletingTheme?.name ?? ''}”?`}>
+        <p className="text-muted text-[14px] mb-4">
+          {deletingTheme?.id === theme ? 'It is the theme in use, so the screen goes back to a built-in one. ' : ''}
+          Share it first if you want to keep a copy of its code.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="lg" className="flex-1" onClick={() => setDeletingTheme(null)}>Cancel</Button>
+          <Button size="lg" className="flex-1 !bg-danger !text-white" onClick={() => { if (deletingTheme) removeTheme(deletingTheme) }}>Delete</Button>
+        </div>
+      </Sheet>
     </>
+  )
+}
+
+/** One theme in the picker. Tapping applies it; holding one of your own opens its menu. */
+function ThemeTile({ meta, active, onSelect, onHold }: { meta: ThemeMeta; active: boolean; onSelect: () => void; onHold?: () => void }) {
+  const press = useLongPress(() => onHold?.())
+  return (
+    <button
+      type="button"
+      {...(onHold ? press : {})}
+      onClick={onSelect}
+      aria-pressed={active}
+      className={`press-soft rounded-2xl p-2 text-left border-2 ${active ? 'border-accent' : 'border-transparent'}`}
+    >
+      <div className="h-14 rounded-xl overflow-hidden flex flex-col p-2 gap-1.5" style={{ background: meta.swatch[0] }}>
+        <div className="h-2.5 w-2/3 rounded-full" style={{ background: meta.swatch[3], opacity: 0.9 }} />
+        <div className="flex gap-1.5 items-end flex-1">
+          <div className="h-full flex-1 rounded-md" style={{ background: meta.swatch[1] }} />
+          <div className="h-4 w-8 rounded-full" style={{ background: meta.swatch[2] }} />
+        </div>
+      </div>
+      <div className="mt-1.5 text-[13px] font-medium truncate">{meta.name}</div>
+      <div className="text-[11px] text-muted leading-tight">{meta.tagline}</div>
+    </button>
   )
 }
 
