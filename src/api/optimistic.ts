@@ -112,6 +112,34 @@ export function removeSet(w: WorkoutDetail, setId: string): WorkoutDetail {
   return { ...w, exercises: w.exercises.map((we) => (we.sets.some((s) => s.id === setId) ? { ...we, sets: we.sets.filter((s) => s.id !== setId) } : we)) }
 }
 
+/** The list with the item at `from` moved to `to`. Out-of-range or equal indices leave it as it is. */
+export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return [...list]
+  const next = [...list]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
+}
+
+/** Give sets in this order the numbers 1..n: what the database is told after a drag. */
+export function renumbering(order: readonly string[]): { setId: string; patch: SetPatch }[] {
+  return order.map((setId, i) => ({ setId, patch: { set_number: i + 1 } }))
+}
+
+/**
+ * Put one exercise's sets in the given order and number them 1..n. A set the order leaves out
+ * (added while the drag was in progress) stays after the others, in its existing order. A drop
+ * set carries its drops with it, as the drops are part of the set.
+ */
+export function reorderSets(w: WorkoutDetail, weId: string, order: readonly string[]): WorkoutDetail {
+  const rank = new Map(order.map((id, i) => [id, i]))
+  return mapExercise(w, weId, (we) => {
+    const listed = we.sets.filter((s) => rank.has(s.id)).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!)
+    const rest = we.sets.filter((s) => !rank.has(s.id))
+    return { ...we, sets: [...listed, ...rest].map((s, i) => (s.set_number === i + 1 ? s : { ...s, set_number: i + 1 })) }
+  })
+}
+
 export function patchSets(w: WorkoutDetail, updates: { setId: string; patch: SetPatch }[]): WorkoutDetail {
   const byId = new Map(updates.map((u) => [u.setId, u.patch]))
   return {

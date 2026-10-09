@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Drop, SetDetail, SetPatch, SetType, WorkoutExerciseDetail } from '../api/types'
 import type { NewSet } from '../api/mutations'
+import { moveItem } from '../api/optimistic'
 import { celebrate, tap } from '../lib/haptics'
 import { useArrivals, useArrived, useLeaving } from '../lib/motion'
+import { blankSet, isBlank } from '../lib/sets'
+import { LONG_PRESS_MS, useLongPress } from '../lib/useLongPress'
+import { useReorder } from '../lib/useReorder'
 import { convert, convertDistance, formatDistance, formatDuration, formatPace, formatWeight, parseDuration, stepFor, toKg, type DistanceUnit, type Unit } from '../lib/units'
 import { Button, Icon, MenuSheet, PrBadge, Segmented, Sheet, Stepper, Toggle } from './ui'
 import { MetricsSheet } from './MetricsSheet'
@@ -56,14 +60,6 @@ function metricPatch(k: MetricKey, text: string, du: DistanceUnit, current: Metr
   }
 }
 
-function hasAnyMetric(s: MetricSet): boolean {
-  return !!s.duration_seconds || !!s.distance || !!s.incline || Object.values(s.extra).some((v) => !!v)
-}
-
-function isBlank(s: SetDetail, cardio: boolean) {
-  return cardio ? !hasAnyMetric(s) : s.weight === 0 && s.reps === 0
-}
-
 /** "30:00 · 3 mph · 12%" style summary of one cardio set. */
 function cardioSummary(s: MetricSet, metrics: MetricKey[], du: DistanceUnit): string {
   return metrics
@@ -88,6 +84,7 @@ export function ExerciseCard({
   onAddSets,
   onReplaceSets,
   onDeleteSet,
+  onReorderSets,
   onNotes,
   onComplete,
   onMetrics,
@@ -105,6 +102,8 @@ export function ExerciseCard({
   onAddSets: (sets: NewSet[]) => void
   onReplaceSets: (sets: NewSet[]) => void
   onDeleteSet: (setId: string) => void
+  /** The exercise's set ids in their new order, after a drag. */
+  onReorderSets: (order: string[]) => void
   onNotes: (notes: string) => void
   onComplete: (completed: boolean) => void
   onMetrics: (metrics: MetricKey[]) => void
@@ -162,24 +161,15 @@ export function ExerciseCard({
     onUpdateSets(updates)
   }
 
+  /** A new, empty set: the row shows its placeholders (and last session's numbers as hints). */
   const addSet = (type: SetType = 'working') => {
     tap()
-    onAddSets([
-      {
-        set_number: (lastSet?.set_number ?? 0) + 1,
-        weight: lastSet?.weight ?? 0,
-        reps: lastSet?.reps ?? 0,
-        unit: lastSet?.unit ?? unit,
-        set_type: type,
-        duration_seconds: lastSet?.duration_seconds ?? null,
-        distance: lastSet?.distance ?? null,
-        distance_unit: cardio ? lastSet?.distance_unit ?? distanceUnit : null,
-        drops: type === 'drop' ? (lastSet?.drops.length ? lastSet.drops : [seedDrop(lastSet?.weight ?? 0, lastSet?.reps ?? 0, unit)]) : [],
-        incline: lastSet?.incline ?? null,
-        extra: lastSet?.extra ?? {},
-      },
-    ])
+    onAddSets([blankSet({ after: lastSet, type, unit, distanceUnit, cardio })])
   }
+
+  // Hold a set and drag it up or down; on release the exercise is renumbered.
+  const setIds = we.sets.map((s) => s.id)
+  const reorder = useReorder(setIds, (from, to) => onReorderSets(moveItem(setIds, from, to)))
 
   const duplicate = (s: SetDetail) => {
     onAddSets([{ set_number: (lastSet?.set_number ?? 0) + 1, weight: s.weight, reps: s.reps, unit: s.unit, set_type: s.set_type, duration_seconds: s.duration_seconds, distance: s.distance, distance_unit: s.distance_unit, drops: s.drops, incline: s.incline, extra: s.extra }])
@@ -287,14 +277,16 @@ export function ExerciseCard({
         <div />
       </div>
 
-      <div className="px-4 pb-0.5 pt-1 flex flex-col">
+      <div ref={reorder.containerRef} className="px-4 pb-0.5 pt-1 flex flex-col">
         {we.sets.map((s, i) => (
-          <Arriving key={s.id} loaded={arrivals} leaving={leaving.has(s.id)}>
-            {cardio ? (
-              <CardioRow set={s} hint={last?.sets[i]} label={numbers[i]} metrics={metrics} distanceUnit={distanceUnit} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} onDelete={() => removeSet(s.id)} />
-            ) : (
-              <StrengthRow set={s} hint={last?.sets[i]} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onDrops={(drops) => onUpdateSets([{ setId: s.id, patch: { drops } }])} onMenu={() => setRowMenu(s)} onDelete={() => removeSet(s.id)} />
-            )}
+          <Arriving key={s.id} loaded={arrivals} leaving={leaving.has(s.id)} slotRef={reorder.slotRef(s.id)}>
+            <SetSlot lifted={reorder.lifted === i} style={reorder.styleFor(i)} onHold={(press) => reorder.lift(i, press)}>
+              {cardio ? (
+                <CardioRow set={s} hint={last?.sets[i]} label={numbers[i]} metrics={metrics} distanceUnit={distanceUnit} onChange={(p) => changeSet(s, p)} onMenu={() => setRowMenu(s)} onDelete={() => removeSet(s.id)} />
+              ) : (
+                <StrengthRow set={s} hint={last?.sets[i]} label={numbers[i]} unit={unit} isPr={s.id === prSetId} onChange={(p) => changeSet(s, p)} onDrops={(drops) => onUpdateSets([{ setId: s.id, patch: { drops } }])} onMenu={() => setRowMenu(s)} onDelete={() => removeSet(s.id)} />
+              )}
+            </SetSlot>
           </Arriving>
         ))}
       </div>
@@ -387,14 +379,32 @@ export function ExerciseCard({
 /* ---------- Rows ---------- */
 
 /** One row of a list: eases in if it was added while you watched, closes up when removed. */
-function Arriving({ loaded, leaving, children }: { loaded: React.RefObject<boolean>; leaving: boolean; children: React.ReactNode }) {
+function Arriving({ loaded, leaving, slotRef, children }: { loaded: React.RefObject<boolean>; leaving: boolean; slotRef?: (el: HTMLElement | null) => void; children: React.ReactNode }) {
   const arrived = useArrived(loaded)
   return (
-    <div className={`collapsible ${leaving ? 'leaving' : ''}`}>
+    <div ref={slotRef} className={`collapsible ${leaving ? 'leaving' : ''}`}>
       <div className={`pb-1.5 ${arrived ? 'row-in' : ''}`}>{children}</div>
     </div>
   )
 }
+
+/**
+ * The hold target for dragging a set: the whole row (a thumb-sized target), with the drops of a
+ * drop set, so the set moves as one. A tap on anything inside still does what it did; the text
+ * fields stop the press reaching here (`stopHold`) so holding one selects its text as usual.
+ * While lifted, the row tells src/main.tsx to leave the keyboard alone.
+ */
+function SetSlot({ lifted, style, onHold, children }: { lifted: boolean; style?: React.CSSProperties; onHold: (press: { clientX: number; clientY: number }) => void; children: React.ReactNode }) {
+  const hold = useLongPress((press) => onHold(press), LONG_PRESS_MS, tap)
+  return (
+    <div {...hold} data-keep-keyboard={lifted ? '' : undefined} style={style} className={lifted ? 'rounded-xl bg-surface shadow-lg' : undefined}>
+      {children}
+    </div>
+  )
+}
+
+/** Text fields keep their own long press (select text) instead of lifting the row. */
+const stopHold = (e: React.PointerEvent) => e.stopPropagation()
 
 const inputClass = 'h-11 w-full rounded-xl bg-surface-2 border border-border/60 text-center text-[17px] font-semibold tabular outline-none focus:border-accent/70 placeholder:text-faint placeholder:font-normal'
 
@@ -450,11 +460,11 @@ function StrengthRow({ set, hint, label, unit, isPr, onChange, onDrops, onMenu, 
       <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center bg-surface">
         <Badge label={label} type={set.set_type} isPr={isPr} onClick={onMenu} />
         <div className="relative @container">
-          <input className={`${inputClass} ${isPr ? 'ring-1 ring-inset ring-pr/70' : ''}`} inputMode="decimal" placeholder={hintWeight} value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`Set ${label} weight`} />
+          <input className={`${inputClass} ${isPr ? 'ring-1 ring-inset ring-pr/70' : ''}`} inputMode="decimal" placeholder={hintWeight} onPointerDown={stopHold} value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`Set ${label} weight`} />
           {/* A long number needs the room, so the badge gives up its letters. */}
           {isPr && <PrBadge compact={w.v.length > 3} className="absolute top-0 right-0 pointer-events-none" />}
         </div>
-        <input className={inputClass} inputMode="numeric" placeholder={hintReps} value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`Set ${label} reps`} />
+        <input className={inputClass} inputMode="numeric" placeholder={hintReps} onPointerDown={stopHold} value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`Set ${label} reps`} />
         <button type="button" aria-label="Set options" onClick={() => { tap(); onMenu() }} className="press h-11 w-11 flex items-center justify-center text-faint active:text-text">
           <Icon.More />
         </button>
@@ -499,8 +509,8 @@ function DropRow({ drop, unit, displayUnit, label, onChange, onRemove }: { drop:
   return (
     <div className="row-in grid grid-cols-[16px_1fr_1fr_36px] gap-2 items-center">
       <span className="text-faint text-[13px]">↓</span>
-      <input className={small} inputMode="decimal" placeholder="0" value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`${label} weight`} />
-      <input className={small} inputMode="numeric" placeholder="0" value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`${label} reps`} />
+      <input className={small} inputMode="decimal" placeholder="0" onPointerDown={stopHold} value={w.v} onFocus={(e) => e.target.select()} onBlur={w.flush} onChange={(e) => w.onChange(e.target.value)} aria-label={`${label} weight`} />
+      <input className={small} inputMode="numeric" placeholder="0" onPointerDown={stopHold} value={r.v} onFocus={(e) => e.target.select()} onBlur={r.flush} onChange={(e) => r.onChange(e.target.value.replace(/\D/g, ''))} aria-label={`${label} reps`} />
       <button type="button" aria-label={`Remove ${label}`} onClick={() => { tap(); onRemove() }} className="h-9 w-9 flex items-center justify-center text-faint active:text-danger"><Icon.X /></button>
     </div>
   )
@@ -533,6 +543,7 @@ function MetricInput({ set, hint, k, distanceUnit, label, onChange }: { set: Set
       inputMode={def.inputMode}
       placeholder={placeholder}
       value={f.v}
+      onPointerDown={stopHold}
       onFocus={(e) => e.target.select()}
       onBlur={f.flush}
       onChange={(e) => f.onChange(clean(e.target.value))}
