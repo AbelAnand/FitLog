@@ -65,9 +65,13 @@ function NativeRouting() {
       // A file tapped while the app was closed arrives as the launch URL, before any listener exists.
       CapApp.getLaunchUrl().then((launch) => { if (launch?.url && isFileUrl(launch.url)) openFile(launch.url) }).catch(() => {})
     })
+    // Simulator tests hand a file in directly (src/db/devtools.ts); release builds never fire this.
+    const testOpen = (e: Event) => { if (import.meta.env.DEV || import.meta.env.MODE === 'simtest') setIncoming((e as CustomEvent<PendingFile>).detail) }
+    window.addEventListener('fitlog:open-file', testOpen)
     return () => {
       removeTap?.()
       removeUrl?.remove()
+      window.removeEventListener('fitlog:open-file', testOpen)
     }
   }, [nav])
   return <RestoreSheet file={incoming} onClose={() => setIncoming(null)} onImported={(_summary, workoutId) => { if (workoutId) nav(`/workout/${workoutId}`) }} />

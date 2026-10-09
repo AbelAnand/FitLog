@@ -110,6 +110,17 @@ export function installDevtools(db: LocalDb, qc: QueryClient) {
       await refresh()
       return summary
     },
+    /** The file and the message "Share" would hand out for a workout. */
+    async sharedText(workoutId: string) {
+      const [{ sharedWorkoutFile }, { workoutSummaryText }] = await Promise.all([import('./share'), import('../lib/share-workout')])
+      return { file: serializeBackup(sharedWorkoutFile(db, workoutId)), summary: workoutSummaryText(db.getWorkout(workoutId)) }
+    },
+    /** Hand a file from the app's Documents folder to the app as if it had been tapped in Messages ("Open in SplitLog"). */
+    async openFile(name: string) {
+      const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
+      const { data } = await Filesystem.readFile({ path: name, directory: Directory.Documents, encoding: Encoding.UTF8 })
+      window.dispatchEvent(new CustomEvent('fitlog:open-file', { detail: { read: readImportFile(String(data)), name } }))
+    },
     /** The log as the backup file and spreadsheet the user would save (simulator tests restore them). */
     backupText: () => serializeBackup(db.exportAll(new Date())),
     csvText: () => setsToCsv(db.allSets()),

@@ -6,7 +6,7 @@ import { db, type ImportSummary } from '../db'
 import type { ReadFile } from '../db/backup'
 import { sharedAsImport, sharedPlanDate, sharedWorkoutOf, type SharedImportMode } from '../db/share'
 import type { BackupFile } from '../db/types'
-import { cleanExercise } from '../db/clean'
+import { cleanExercise, cleanSet, cleanWorkoutExercise } from '../db/clean'
 import { dayKey } from '../lib/splits'
 import { toast } from '../lib/toast'
 import { Button, Sheet, Toggle } from './ui'
@@ -41,10 +41,23 @@ function Preview({ file, onClose, onImported }: { file: PendingFile; onClose: ()
 
   // What would go in, and what the database says about it. For a shared file this depends on the switch.
   const plan = useMemo(() => {
-    const toImport: BackupFile = read.kind === 'shared' ? sharedAsImport(read.file, mode, today) : read.file
-    const { summary } = db.planImport(toImport, read.kind)
-    return { toImport, summary }
+    try {
+      const toImport: BackupFile = read.kind === 'shared' ? sharedAsImport(read.file, mode, today) : read.file
+      const { summary } = db.planImport(toImport, read.kind)
+      return { toImport, summary }
+    } catch {
+      return null
+    }
   }, [read, mode, today])
+
+  if (!plan || (read.kind === 'shared' && !shared)) {
+    return (
+      <>
+        <p className="text-muted text-[14px] mb-4">This file does not hold a SplitLog workout that can be read.</p>
+        <Button variant="secondary" size="lg" className="w-full" onClick={onClose}>Close</Button>
+      </>
+    )
+  }
   const { summary } = plan
 
   const restore = async () => {
@@ -64,13 +77,13 @@ function Preview({ file, onClose, onImported }: { file: PendingFile; onClose: ()
     }
   }
 
-  if (read.kind === 'shared') {
-    if (!shared) return <p className="text-muted text-[14px] mb-4">This file does not hold a shared workout.</p>
+  if (read.kind === 'shared' && shared) {
     const planDate = sharedPlanDate(shared, today)
     const exerciseNames = read.file.exercises.map(cleanExercise).filter((e): e is NonNullable<typeof e> => !!e).map((e) => e.name)
     const newNames = exerciseNames.filter((n) => !db.findExerciseByName(n))
     const alreadyHere = summary.workouts === 0
-    const sets = summary.sets
+    const entryIds = new Set(read.file.workout_exercises.map(cleanWorkoutExercise).flatMap((e) => (e && e.workout_id === shared.id ? [e.id] : [])))
+    const sets = read.file.sets.map(cleanSet).filter((s) => s && entryIds.has(s.workout_exercise_id)).length
     return (
       <>
         <p className="text-muted text-[14px] mb-3 break-words">{name}</p>
