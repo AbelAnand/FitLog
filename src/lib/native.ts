@@ -8,6 +8,9 @@ export const isNative = Capacitor.isNativePlatform()
 export const isIOS = platform === 'ios'
 export const isAndroid = platform === 'android'
 
+/** What to call the device in copy: "iPhone" on iOS, "phone" on Android (and in a browser, where the text is about the phone app). */
+export const deviceName = isIOS ? 'iPhone' : 'phone'
+
 /** One-time native setup: status bar style and keyboard behaviour. */
 export async function initNative(): Promise<void> {
   if (!isNative) return

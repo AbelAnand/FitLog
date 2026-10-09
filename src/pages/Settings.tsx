@@ -11,7 +11,7 @@ import { toast } from '../lib/toast'
 import { clearReminders } from '../lib/notifications'
 import { updateWidget } from '../lib/widget'
 import { exportCsv, setsToCsv, shareTextFile } from '../lib/csv'
-import { isNative } from '../lib/native'
+import { deviceName, isAndroid, isNative } from '../lib/native'
 import { DEFAULT_SETTINGS, loadReminderSettings, requestNotificationPermission, saveReminderSettings, syncDailyReminder, type ReminderSettings } from '../lib/notifications'
 import { Button, Icon, MenuSheet, PageTitle, Segmented, Sheet, Stepper, TextInput, Toggle } from '../components/ui'
 import { ThemeEditorSheet, ThemeImportSheet } from '../components/ThemeEditor'
@@ -47,7 +47,7 @@ export function SettingsPage() {
       if (result !== 'cancelled') {
         await db.markBackedUp(now.toISOString())
         qc.invalidateQueries({ queryKey: keys.backup })
-        toast(result === 'downloaded' ? 'Backup downloaded.' : 'Backup saved. Keep it somewhere other than this iPhone.', 'info')
+        toast(result === 'downloaded' ? 'Backup downloaded.' : `Backup saved. Keep it somewhere other than this ${deviceName}.`, 'info')
       }
     } catch {
       toast("Couldn't make the backup. Try again.")
@@ -95,7 +95,7 @@ export function SettingsPage() {
       setRem(DEFAULT_SETTINGS)
       await reloadEverything(qc)
       setConfirmErase(false)
-      toast('Everything has been erased from this iPhone.', 'info', 5000)
+      toast(`Everything has been erased from this ${deviceName}.`, 'info', 5000)
     } catch {
       toast("Couldn't erase. Try again.")
     } finally {
@@ -222,7 +222,7 @@ export function SettingsPage() {
       </Section>
 
       <Section title="Reminders">
-        {!isNative && <div className="px-4 py-3 text-[13px] text-muted">Reminders are available in the iPhone app.</div>}
+        {!isNative && <div className="px-4 py-3 text-[13px] text-muted">Reminders are available in the phone app.</div>}
         <Row label="Daily check-in" hint="Nudge on days with no workout logged">
           <Toggle checked={rem.dailyEnabled} onChange={(v) => saveRem({ dailyEnabled: v })} label="Daily check-in" />
         </Row>
@@ -248,12 +248,12 @@ export function SettingsPage() {
             <Stepper value={rem.gymIntervalMin} min={5} max={60} onChange={(v) => saveRem({ gymIntervalMin: v })} suffix=" min" />
           </Row>
         )}
-        {permDenied && <div className="px-4 py-3 text-[13px] text-danger">Notifications are off for SplitLog. Enable them in iPhone Settings → Notifications → SplitLog.</div>}
+        {permDenied && <div className="px-4 py-3 text-[13px] text-danger">Notifications are off for SplitLog. Enable them in {isAndroid ? 'Android Settings → Apps → SplitLog → Notifications' : 'iPhone Settings → Notifications → SplitLog'}.</div>}
       </Section>
 
       <Section title="Your data">
         <div className="px-4 py-3 text-[13px] text-muted leading-relaxed">
-          Your log is kept on this iPhone and nowhere else. It is part of your iPhone's own backups, so it comes with you to a new iPhone. Save a backup file as well, in case this phone is lost or SplitLog is deleted.
+          Your log is kept on this {deviceName} and nowhere else. {isAndroid ? "It is part of your phone's Google backup, so it comes with you to a new phone." : "It is part of your iPhone's own backups, so it comes with you to a new iPhone."} Save a backup file as well, in case this phone is lost or SplitLog is deleted.
         </div>
         <Row label="Save a backup" hint={lastBackup ? `Last saved ${lastBackup}` : backup?.workouts ? 'Never saved' : 'Nothing to save yet'}>
           <Button variant="secondary" size="sm" disabled={busy !== null || !backup?.workouts} onClick={saveBackup}>
@@ -279,7 +279,7 @@ export function SettingsPage() {
             <Icon.Share /> {exportMsg ?? 'Export'}
           </Button>
         </Row>
-        <Row label="Erase everything" hint="Removes every workout from this iPhone">
+        <Row label="Erase everything" hint={`Removes every workout from this ${deviceName}`}>
           <Button variant="danger" size="sm" disabled={busy !== null} onClick={() => { setTyped(''); setConfirmErase(true) }}>Erase</Button>
         </Row>
       </Section>
@@ -299,7 +299,7 @@ export function SettingsPage() {
               {pending.summary.exercises > 0 && <div className="text-[13px] text-muted">{pending.summary.exercises} exercises for your library</div>}
             </div>
             <p className="text-muted text-[14px] mb-3">
-              These are added to what is already on this iPhone. Nothing is removed.
+              These are added to what is already on this {deviceName}. Nothing is removed.
               {pending.summary.alreadyHere > 0 && ` ${pending.summary.alreadyHere} ${pending.summary.alreadyHere === 1 ? 'item is' : 'items are'} already here and will be replaced by the file's copy.`}
               {pending.summary.sameWorkouts > 0 && pending.read.kind === 'backup' && ` ${pending.summary.sameWorkouts} ${pending.summary.sameWorkouts === 1 ? 'workout is' : 'workouts are'} already here with the same sets. The file's copy takes ${pending.summary.sameWorkouts === 1 ? 'its' : 'their'} place, bringing notes and session times with it.`}
               {pending.summary.sameWorkouts > 0 && pending.read.kind === 'spreadsheet' && ` ${pending.summary.sameWorkouts} ${pending.summary.sameWorkouts === 1 ? 'workout is' : 'workouts are'} already here with the same sets and will be left as ${pending.summary.sameWorkouts === 1 ? 'it is' : 'they are'}.`}
@@ -325,7 +325,7 @@ export function SettingsPage() {
 
       <Sheet open={confirmErase} onClose={() => busy === null && setConfirmErase(false)} title="Erase everything?">
         <p className="text-muted text-[14px] mb-3">
-          This removes every workout from this iPhone ({backup?.workouts ?? 0} {backup?.workouts === 1 ? 'workout' : 'workouts'}, {backup?.sets ?? 0} sets). It can't be undone.
+          This removes every workout from this {deviceName} ({backup?.workouts ?? 0} {backup?.workouts === 1 ? 'workout' : 'workouts'}, {backup?.sets ?? 0} sets). It can't be undone.
           {lastBackup ? ` Your last backup file was saved on ${lastBackup}.` : ' You have not saved a backup file.'}
         </p>
         <label className="block mb-3">
