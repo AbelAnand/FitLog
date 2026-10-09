@@ -102,7 +102,10 @@ export function HomePage() {
 
           {plans.length > 0 && (
             <>
-              <h2 className="text-[17px] font-semibold mt-8 mb-3">Planned</h2>
+              <div className="flex items-baseline justify-between mt-8 mb-3">
+                <h2 className="text-[17px] font-semibold">Planned</h2>
+                {plans.length > 4 && <Link to="/history" className="text-[14px] text-accent font-medium">See calendar</Link>}
+              </div>
               <div className="flex flex-col gap-2">
                 {plans.slice(0, 4).map((w) => (
                   <WorkoutRow key={w.id} w={w} />

@@ -8,14 +8,17 @@ import { formatSessionLength, isLiveSession } from '../lib/duration'
 import { loadReminderSettings, startGymSession } from '../lib/notifications'
 import { isNative } from '../lib/native'
 import { tap } from '../lib/haptics'
+import { shareFromMenu } from '../lib/share-workout'
 import { Button, Icon, MenuSheet, Sheet } from './ui'
 import { SwipeRow } from './SwipeRow'
+import { DuplicateSheet } from './DuplicateSheet'
 
 /** A workout in a list. Tap to open, long-press for actions. Plans get a Start button. */
 export function WorkoutRow({ w }: { w: WorkoutSummary }) {
   const nav = useNavigate()
   const [menu, setMenu] = useState(false)
   const [confirm, setConfirm] = useState(false)
+  const [duplicate, setDuplicate] = useState(false)
   const del = useDeleteWorkout()
   const session = useSessionControls(w.id)
   const press = useLongPress(() => setMenu(true))
@@ -76,9 +79,13 @@ export function WorkoutRow({ w }: { w: WorkoutSummary }) {
         items={[
           ...(w.is_plan ? [{ label: 'Start this workout', icon: <Icon.Play />, onClick: startPlan }] : []),
           { label: 'Open', icon: <Icon.ChevronRight />, onClick: () => nav(`/workout/${w.id}`) },
+          { label: 'Duplicate to days…', sub: 'Plan it again on the days you pick', icon: <Icon.CalendarPlus />, onClick: () => setDuplicate(true) },
+          { label: 'Share', sub: 'A file for SplitLog users and a summary for anyone', icon: <Icon.Share />, onClick: () => { shareFromMenu(w.id) } },
           { label: w.is_plan ? 'Delete plan' : 'Delete workout', icon: <Icon.Trash />, danger: true, onClick: () => setConfirm(true) },
         ]}
       />
+
+      <DuplicateSheet workout={duplicate ? w : null} onClose={() => setDuplicate(false)} />
 
       <Sheet open={confirm} onClose={() => setConfirm(false)} title={`Delete ${w.title || 'this workout'}?`}>
         <p className="text-muted text-[14px] mb-4">{format(d, 'EEEE, MMM d')}. Its exercises and sets will be removed. This can't be undone.</p>

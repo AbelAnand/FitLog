@@ -1,6 +1,6 @@
-import type { BackupFile, StoredExercise, StoredSet, StoredWorkout, StoredWorkoutExercise } from './types'
-import { DEFAULT_PROFILE } from './types'
-import { cleanProfile } from './clean'
+import type { BackupFile, SharedMarker, StoredExercise, StoredSet, StoredSplit, StoredWorkout, StoredWorkoutExercise } from './types'
+import { BACKUP_FORMAT, DEFAULT_PROFILE } from './types'
+import { cleanProfile, isId } from './clean'
 import { isMetricKey, defaultMetricsFor, type MetricKey } from '../data/cardio-metrics'
 
 /** Reading and writing the files people keep their log in. Everything read here is untrusted. */
@@ -36,18 +36,28 @@ export function parseBackup(text: string): BackupFile {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new UnreadableFile('This file is not a SplitLog backup.')
   const r = raw as Record<string, unknown>
   if (r.app !== 'FitLog') throw new UnreadableFile('This file is not a SplitLog backup.')
-  if (r.format !== 1) throw new UnreadableFile('This backup was made by a newer version of SplitLog. Update the app, then try again.')
+  // Format 1 (before splits) is the same file without `splits`; anything newer is refused.
+  if (r.format !== 1 && r.format !== BACKUP_FORMAT) throw new UnreadableFile('This backup was made by a newer version of SplitLog. Update the app, then try again.')
   // Records are checked one by one when they are imported; here only the outline is.
   return {
     app: 'FitLog',
-    format: 1,
+    format: BACKUP_FORMAT,
     exportedAt: typeof r.exportedAt === 'string' ? r.exportedAt : '',
     profile: r.profile ? cleanProfile(r.profile) : DEFAULT_PROFILE,
     exercises: list(r.exercises, 'exercises') as StoredExercise[],
     workouts: list(r.workouts, 'workouts') as StoredWorkout[],
     workout_exercises: list(r.workout_exercises, 'exercise entries') as StoredWorkoutExercise[],
     sets: list(r.sets, 'sets') as StoredSet[],
+    splits: r.format === 1 ? [] : (list(r.splits, 'splits') as StoredSplit[]),
+    ...(sharedMarker(r.shared) ? { shared: sharedMarker(r.shared)! } : {}),
   }
+}
+
+/** The marker a shared-workout file carries; anything that is not exactly that is ignored. */
+function sharedMarker(v: unknown): SharedMarker | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null
+  const r = v as Record<string, unknown>
+  return r.kind === 'workout' && isId(r.workout_id) ? { kind: 'workout', workout_id: r.workout_id } : null
 }
 
 /* ---------- Spreadsheet (CSV) files made by "Export to CSV" ---------- */
@@ -208,19 +218,28 @@ export function parseCsv(text: string): BackupFile {
     exercise.track_incline = exercise.metrics.includes('incline')
   }
 
-  return { app: 'FitLog', format: 1, exportedAt: '', profile: DEFAULT_PROFILE, exercises: [...exercises.values()], workouts: [...workouts.values()], workout_exercises: [...entries.values()], sets }
+  return { app: 'FitLog', format: BACKUP_FORMAT, exportedAt: '', profile: DEFAULT_PROFILE, exercises: [...exercises.values()], workouts: [...workouts.values()], workout_exercises: [...entries.values()], sets, splits: [] }
 }
+
+/**
+ * What a file knows. A backup holds everything; a spreadsheet holds sets only; a shared file is
+ * one workout from someone else's log, which must not change anything already here.
+ */
+export type ImportKind = 'backup' | 'spreadsheet' | 'shared'
 
 export interface ReadFile {
   file: BackupFile
-  kind: 'backup' | 'spreadsheet'
+  kind: ImportKind
 }
 
 /** Work out what kind of file this is from its contents, not its name. */
 export function readImportFile(text: string): ReadFile {
   if (text.length > MAX_FILE_BYTES) throw new UnreadableFile('This file is too large to be a SplitLog backup.')
   const start = text.replace(/^﻿/, '').trimStart()
-  if (start.startsWith('{')) return { file: parseBackup(text), kind: 'backup' }
+  if (start.startsWith('{')) {
+    const file = parseBackup(text)
+    return { file, kind: file.shared ? 'shared' : 'backup' }
+  }
   if (/^"?date"?\s*,/i.test(start)) return { file: parseCsv(text), kind: 'spreadsheet' }
   throw new UnreadableFile('This file is not a SplitLog backup or a SplitLog spreadsheet export.')
 }
