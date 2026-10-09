@@ -1,3 +1,4 @@
+import { deviceName } from '../lib/native'
 /**
  * Size limits. The database enforces the same numbers (see the hardening migration), so these exist
  * to stop the input at the limit instead of letting a save be refused.
@@ -25,7 +26,7 @@ export const LIMITS = {
 export function explainSaveError(err: unknown): string {
   const message = (err as { message?: string } | null)?.message ?? ''
   if (/not found/i.test(message)) return 'That item no longer exists. Go back and open the workout again.'
-  if (/full|space|quota|disk/i.test(message)) return 'This iPhone is out of storage space. Free some up and try again.'
+  if (/full|space|quota|disk/i.test(message)) return `This ${deviceName} is out of storage space. Free some up and try again.`
   if (/built-in/i.test(message)) return message
   return 'Close SplitLog and open it again. Your earlier workouts are safe.'
 }

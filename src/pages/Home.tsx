@@ -13,6 +13,7 @@ import { Button, EmptyState, Icon, PageTitle, Spinner } from '../components/ui'
 import { computeStreak } from '../lib/streak'
 import { syncDailyReminder } from '../lib/notifications'
 import { updateWidget } from '../lib/widget'
+import { deviceName } from '../lib/native'
 
 export function HomePage() {
   const { data: workouts, isLoading } = useWorkouts()
@@ -91,7 +92,7 @@ export function HomePage() {
             <div className="mt-4 rounded-[18px] border border-border/60 bg-surface p-4">
               <div className="text-[15px] font-semibold">Save a backup of your log</div>
               <div className="mt-0.5 text-[13px] text-muted">
-                {backup?.lastBackupAt ? 'Your last backup file is over a month old.' : 'Your workouts are kept on this iPhone only.'} A backup file protects them if the phone is lost.
+                {backup?.lastBackupAt ? 'Your last backup file is over a month old.' : `Your workouts are kept on this ${deviceName} only.`} A backup file protects them if the phone is lost.
               </div>
               <div className="mt-3 flex gap-2">
                 <Link to="/settings" className="inline-flex items-center justify-center h-9 px-3 rounded-xl bg-accent text-accent-ink text-[14px] font-semibold">Open Settings</Link>

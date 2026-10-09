@@ -4,8 +4,9 @@ import { format, parseISO } from 'date-fns'
 import { useAllSets, useBackupStatus, useProfile } from '../api/queries'
 import { reloadEverything, useUpdateProfile } from '../api/mutations'
 import { keys } from '../api/keys'
-import { db, type ImportSummary } from '../db'
-import { MAX_FILE_BYTES, UnreadableFile, backupFilename, readImportFile, serializeBackup, type ReadFile } from '../db/backup'
+import { db } from '../db'
+import { MAX_FILE_BYTES, UnreadableFile, backupFilename, readImportFile, serializeBackup } from '../db/backup'
+import { RestoreSheet, type PendingFile } from '../components/RestoreSheet'
 import { GUIDE_URL, PRIVACY_URL, SUPPORT_URL, openExternal } from '../lib/site'
 import { toast } from '../lib/toast'
 import { clearReminders } from '../lib/notifications'
@@ -33,8 +34,7 @@ export function SettingsPage() {
   const { data: backup } = useBackupStatus()
   const [busy, setBusy] = useState<'backup' | 'restore' | 'erase' | null>(null)
   const picker = useRef<HTMLInputElement>(null)
-  const [pending, setPending] = useState<{ read: ReadFile; summary: ImportSummary; name: string } | null>(null)
-  const [takeProfile, setTakeProfile] = useState(false)
+  const [pending, setPending] = useState<PendingFile | null>(null)
   const [confirmErase, setConfirmErase] = useState(false)
   const [typed, setTyped] = useState('')
 
@@ -64,25 +64,9 @@ export function SettingsPage() {
       const read = readImportFile(await file.text())
       const { summary } = db.planImport(read.file, read.kind)
       if (!summary.workouts && !summary.sets && !summary.sameWorkouts) throw new UnreadableFile('There are no workouts in this file.')
-      setTakeProfile(read.kind === 'backup' && db.counts().workouts === 0)
-      setPending({ read, summary, name: file.name })
+      setPending({ read, name: file.name })
     } catch (e) {
       toast(e instanceof UnreadableFile ? e.message : "That file couldn't be read.", 'error', 6000)
-    }
-  }
-
-  const restore = async () => {
-    if (!pending) return
-    setBusy('restore')
-    try {
-      const done = await db.importAll(pending.read.file, { takeProfile, kind: pending.read.kind })
-      await reloadEverything(qc)
-      setPending(null)
-      toast(done.workouts ? `Restored ${done.workouts} ${done.workouts === 1 ? 'workout' : 'workouts'} and ${done.sets} sets.` : 'Everything in that file was already here.', 'info', 5000)
-    } catch {
-      toast("The restore didn't finish. Nothing was changed.", 'error', 6000)
-    } finally {
-      setBusy(null)
     }
   }
 
@@ -290,38 +274,7 @@ export function SettingsPage() {
         <LinkRow label="Help and support" onClick={() => openExternal(SUPPORT_URL)} />
       </Section>
 
-      <Sheet open={!!pending} onClose={() => busy === null && setPending(null)} title="Restore from this file?">
-        {pending && (
-          <>
-            <p className="text-muted text-[14px] mb-3 break-words">{pending.name}</p>
-            <div className="rounded-2xl bg-surface-2 px-4 py-3 mb-3 text-[15px]">
-              <div className="font-semibold">{pending.summary.workouts + (pending.read.kind === 'spreadsheet' ? pending.summary.sameWorkouts : 0)} {pending.summary.workouts + (pending.read.kind === 'spreadsheet' ? pending.summary.sameWorkouts : 0) === 1 ? 'workout' : 'workouts'} in this file</div>
-              {pending.summary.exercises > 0 && <div className="text-[13px] text-muted">{pending.summary.exercises} exercises for your library</div>}
-            </div>
-            <p className="text-muted text-[14px] mb-3">
-              These are added to what is already on this {deviceName}. Nothing is removed.
-              {pending.summary.alreadyHere > 0 && ` ${pending.summary.alreadyHere} ${pending.summary.alreadyHere === 1 ? 'item is' : 'items are'} already here and will be replaced by the file's copy.`}
-              {pending.summary.sameWorkouts > 0 && pending.read.kind === 'backup' && ` ${pending.summary.sameWorkouts} ${pending.summary.sameWorkouts === 1 ? 'workout is' : 'workouts are'} already here with the same sets. The file's copy takes ${pending.summary.sameWorkouts === 1 ? 'its' : 'their'} place, bringing notes and session times with it.`}
-              {pending.summary.sameWorkouts > 0 && pending.read.kind === 'spreadsheet' && ` ${pending.summary.sameWorkouts} ${pending.summary.sameWorkouts === 1 ? 'workout is' : 'workouts are'} already here with the same sets and will be left as ${pending.summary.sameWorkouts === 1 ? 'it is' : 'they are'}.`}
-              {pending.summary.skipped > 0 && ` ${pending.summary.skipped} damaged ${pending.summary.skipped === 1 ? 'item' : 'items'} will be left out.`}
-              {pending.read.kind === 'spreadsheet' && ' A spreadsheet holds sets only, so notes, plans and session times are not in it.'}
-            </p>
-            {pending.read.kind === 'backup' && (
-              <div className="flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3 mb-4">
-                <div>
-                  <div className="text-[15px] font-medium">Use its units and weekly goal</div>
-                  <div className="text-[12px] text-muted">{pending.read.file.profile.unit}, {pending.read.file.profile.distance_unit}, {pending.read.file.profile.weekly_goal} a week</div>
-                </div>
-                <Toggle checked={takeProfile} onChange={setTakeProfile} label="Use the file's units and weekly goal" />
-              </div>
-            )}
-            <div className="flex gap-2">
-              <Button variant="secondary" size="lg" className="flex-1" disabled={busy !== null} onClick={() => setPending(null)}>Cancel</Button>
-              <Button size="lg" className="flex-1" disabled={busy !== null} onClick={restore}>{busy === 'restore' ? 'Restoring…' : 'Restore'}</Button>
-            </div>
-          </>
-        )}
-      </Sheet>
+      <RestoreSheet file={pending} onClose={() => setPending(null)} />
 
       <Sheet open={confirmErase} onClose={() => busy === null && setConfirmErase(false)} title="Erase everything?">
         <p className="text-muted text-[14px] mb-3">

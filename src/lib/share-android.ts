@@ -16,12 +16,12 @@ export type AndroidShareResult = 'shared' | 'cancelled'
 
 const FOLDER = 'shared'
 
-export async function shareTextFileAndroid(filename: string, text: string): Promise<AndroidShareResult> {
+export async function shareTextFileAndroid(filename: string, text: string, message?: string, title = filename): Promise<AndroidShareResult> {
   const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')])
   await Filesystem.rmdir({ path: FOLDER, directory: Directory.Cache, recursive: true }).catch(() => {})
   const written = await Filesystem.writeFile({ path: `${FOLDER}/${filename}`, data: text, directory: Directory.Cache, encoding: Encoding.UTF8, recursive: true })
   try {
-    await Share.share({ title: filename, url: written.uri })
+    await Share.share(message ? { title, text: message, files: [written.uri] } : { title, url: written.uri })
     return 'shared'
   } catch (e) {
     // The Share plugin rejects with "Share canceled" when the sheet is dismissed.

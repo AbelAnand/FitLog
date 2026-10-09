@@ -9,6 +9,7 @@ import type { BackupFile } from '../db/types'
 import { cleanExercise, cleanSet, cleanWorkoutExercise } from '../db/clean'
 import { dayKey } from '../lib/splits'
 import { toast } from '../lib/toast'
+import { deviceName } from '../lib/native'
 import { Button, Sheet, Toggle } from './ui'
 
 export interface PendingFile {
@@ -128,7 +129,7 @@ function Preview({ file, onClose, onImported }: { file: PendingFile; onClose: ()
         {summary.splits > 0 && <div className="text-[13px] text-muted">{summary.splits} {summary.splits === 1 ? 'split' : 'splits'}</div>}
       </div>
       <p className="text-muted text-[14px] mb-3">
-        These are added to what is already on this iPhone. Nothing is removed.
+        These are added to what is already on this {deviceName}. Nothing is removed.
         {summary.alreadyHere > 0 && ` ${summary.alreadyHere} ${summary.alreadyHere === 1 ? 'item is' : 'items are'} already here and will be replaced by the file's copy.`}
         {summary.sameWorkouts > 0 && read.kind === 'backup' && ` ${summary.sameWorkouts} ${summary.sameWorkouts === 1 ? 'workout is' : 'workouts are'} already here with the same sets. The file's copy takes ${summary.sameWorkouts === 1 ? 'its' : 'their'} place, bringing notes and session times with it.`}
         {summary.sameWorkouts > 0 && read.kind === 'spreadsheet' && ` ${summary.sameWorkouts} ${summary.sameWorkouts === 1 ? 'workout is' : 'workouts are'} already here with the same sets and will be left as ${summary.sameWorkouts === 1 ? 'it is' : 'they are'}.`}

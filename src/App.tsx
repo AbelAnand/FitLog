@@ -7,7 +7,7 @@ import { Button, Spinner } from './components/ui'
 import { Toaster } from './components/Toaster'
 import { toast } from './lib/toast'
 import { explainSaveError } from './data/limits'
-import { isNative } from './lib/native'
+import { deviceName, isNative } from './lib/native'
 import { onNotificationTap } from './lib/notifications'
 import { isFileUrl, readOpenedFile } from './lib/open-file'
 import { UnreadableFile } from './db/backup'
@@ -105,7 +105,7 @@ function DataGate({ children }: { children: ReactNode }) {
   return (
     <main className="min-h-dvh mx-auto max-w-sm px-6 pt-safe pb-safe flex flex-col justify-center text-center">
       <h1 className="text-[22px] font-bold">SplitLog couldn't open your log</h1>
-      <p className="mt-2 text-muted text-[15px]">Your workouts are still on this iPhone. Close SplitLog completely and open it again. If this keeps happening, free up some storage space.</p>
+      <p className="mt-2 text-muted text-[15px]">Your workouts are still on this {deviceName}. Close SplitLog completely and open it again. If this keeps happening, free up some storage space.</p>
       <Button size="lg" className="mt-6" onClick={() => { setState('opening'); setAttempt((n) => n + 1) }}>Try again</Button>
     </main>
   )

@@ -9,6 +9,9 @@ import { heldCount, holdWrites, stopHolding, useHeldCount } from '../api/hold'
 import type { WorkoutDetail } from '../api/types'
 import { ExerciseCard, type LastSession } from '../components/ExerciseCard'
 import { ExercisePicker } from '../components/ExercisePicker'
+import { DuplicateSheet } from '../components/DuplicateSheet'
+import { summaryOf } from '../api/optimistic'
+import { shareFromMenu } from '../lib/share-workout'
 import { SessionSheet } from '../components/SessionSheet'
 import { Button, Icon, MenuSheet, Sheet, Spinner } from '../components/ui'
 import { bestByExercise } from '../lib/prs'
@@ -72,6 +75,7 @@ export function WorkoutPage() {
   const [menu, setMenu] = useState(false)
   const [sessionSheet, setSessionSheet] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [duplicate, setDuplicate] = useState(false)
   const [gymActive, setGymActive] = useState(false)
 
   useEffect(() => {
@@ -400,9 +404,15 @@ export function WorkoutPage() {
           ...(live ? [{ label: 'Session & reminders', sub: paused ? 'Paused' : `${formatClock(elapsed)} elapsed`, icon: <Icon.Clock />, onClick: () => setSessionSheet(true) }] : []),
           ...(!plan && !finished && workout.exercises.length > 0 ? [{ label: 'Finish workout', sub: 'Marks it done and stops gym reminders', icon: <Icon.Check />, onClick: finish }] : []),
           ...(finished ? [{ label: 'Resume workout', sub: 'Reopens it; time away is not counted', icon: <Icon.Play />, onClick: reopen }] : []),
+          ...(workout.exercises.length > 0 ? [
+            { label: 'Share', sub: 'A file for SplitLog users and a summary for anyone', icon: <Icon.Share />, onClick: () => { shareFromMenu(workout.id) } },
+            { label: 'Duplicate to days…', sub: 'Plan it again on other days', icon: <Icon.CalendarPlus />, onClick: () => setDuplicate(true) },
+          ] : []),
           { label: plan ? 'Delete plan' : 'Delete workout', icon: <Icon.Trash />, danger: true, onClick: () => setConfirmDelete(true) },
         ]}
       />
+
+      <DuplicateSheet workout={duplicate ? summaryOf(workout) : null} onClose={() => setDuplicate(false)} />
 
       <Sheet open={confirmLeave} onClose={() => setConfirmLeave(false)} title="Save your changes?">
         <p className="text-muted text-[14px] mb-4">This {plan ? 'plan' : 'workout'} has changes that haven't been saved.</p>
