@@ -1,13 +1,38 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { addDays, format } from 'date-fns'
-import { useCreateWorkout } from '../api/mutations'
+import { useCreateWorkout, useSessionControls } from '../api/mutations'
 import { useWorkouts } from '../api/queries'
+import type { WorkoutSummary } from '../api/types'
 import { isNative } from '../lib/native'
+import { tap } from '../lib/haptics'
 import { loadReminderSettings, startGymSession } from '../lib/notifications'
 import { Button, Chip, Icon, Segmented, Sheet, TextInput, Toggle } from './ui'
 
 const DEFAULT_TITLES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Cardio']
+
+/** A plan waiting for today, offered at the top of the start sheet so it is not planned twice. */
+function TodayPlan({ w, gym, onStarted }: { w: WorkoutSummary; gym: boolean; onStarted: () => void }) {
+  const session = useSessionControls(w.id)
+  const nav = useNavigate()
+  const start = async () => {
+    tap()
+    if (!(await session.startPlan())) return
+    if (gym) startGymSession(w.id, w.title)
+    onStarted()
+    nav(`/workout/${w.id}`)
+  }
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-accent/70 px-4 py-3">
+      <div className="min-w-0">
+        <div className="text-[12px] font-medium text-accent uppercase tracking-wide">Planned for today</div>
+        <div className="text-[15px] font-semibold truncate">{w.title || 'Workout'}</div>
+        <div className="text-[12px] text-muted truncate">{w.exerciseNames.join(' · ')}</div>
+      </div>
+      <Button size="sm" className="shrink-0" disabled={session.isPending} onClick={start} aria-label={`Start ${w.title}`}><Icon.Play /> Start</Button>
+    </div>
+  )
+}
 
 export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: boolean; onClose: () => void; initialMode?: 'now' | 'plan' }) {
   const [title, setTitle] = useState('')
@@ -34,6 +59,7 @@ export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: 
 
   const recent = Array.from(new Set(workouts.filter((w) => !w.is_plan).map((w) => w.title.trim()).filter(Boolean)))
   const suggestions = Array.from(new Set([...recent, ...DEFAULT_TITLES])).slice(0, 9)
+  const todaysPlans = workouts.filter((w) => w.is_plan && w.date === today && w.exerciseNames.length > 0).slice(0, 3)
 
   const start = (t: string) => {
     const clean = t.trim() || 'Workout'
@@ -51,6 +77,12 @@ export function NewWorkoutSheet({ open, onClose, initialMode = 'now' }: { open: 
       <div className="mb-4">
         <Segmented value={mode} options={[{ value: 'now', label: 'Start now' }, { value: 'plan', label: 'Plan for later' }]} onChange={setMode} />
       </div>
+
+      {mode === 'now' && !backdated && todaysPlans.length > 0 && (
+        <div className="flex flex-col gap-2 mb-4">
+          {todaysPlans.map((w) => <TodayPlan key={w.id} w={w} gym={gym && gymAvailable} onStarted={onClose} />)}
+        </div>
+      )}
 
       {mode === 'now' && (
         <label className="flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-3 mb-4">
