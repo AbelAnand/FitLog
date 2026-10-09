@@ -1,11 +1,15 @@
 import { useRef, type PointerEvent as RPointerEvent } from 'react'
 import { thud } from './haptics'
 
+/** How long a finger rests before a hold counts, everywhere in the app. */
+export const LONG_PRESS_MS = 450
+
 /**
  * Long-press detection that plays nicely with taps and scrolling.
- * Fires `onLongPress` after `ms`; a subsequent click is swallowed so the row doesn't also open.
+ * Fires `onLongPress` after `ms` with the press that started it; a subsequent click is swallowed
+ * so the row doesn't also open. `haptic` plays when the hold registers.
  */
-export function useLongPress(onLongPress: () => void, ms = 450) {
+export function useLongPress(onLongPress: (press: RPointerEvent) => void, ms = LONG_PRESS_MS, haptic: () => void = thud) {
   const timer = useRef<number | null>(null)
   const fired = useRef(false)
   const start = useRef<{ x: number; y: number } | null>(null)
@@ -23,8 +27,8 @@ export function useLongPress(onLongPress: () => void, ms = 450) {
       clear()
       timer.current = window.setTimeout(() => {
         fired.current = true
-        thud()
-        onLongPress()
+        haptic()
+        onLongPress(e)
       }, ms)
     },
     onPointerMove: (e: RPointerEvent) => {

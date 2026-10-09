@@ -400,6 +400,18 @@ export function useUpdateSets(workoutId: string) {
   })
 }
 
+/**
+ * Put an exercise's sets in a new order after a drag. The whole exercise is renumbered 1..n in
+ * one transaction, so the stored order is never ambiguous.
+ */
+export function useReorderSets(workoutId: string) {
+  return useEdit<{ workoutExerciseId: string; order: string[] }>(workoutId, {
+    error: "Couldn't move the set.",
+    apply: (w, v) => opt.reorderSets(w, v.workoutExerciseId, v.order),
+    run: (v) => db.patchSets(opt.renumbering(v.order)),
+  })
+}
+
 export function useDeleteSet(workoutId: string) {
   return useEdit<string>(workoutId, {
     error: "Couldn't delete the set.",

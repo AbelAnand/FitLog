@@ -90,5 +90,5 @@ export interface Exercise {
   lastUsed?: string
 }
 
-/** Fields a set row can change. */
-export type SetPatch = Partial<Pick<SetDetail, 'weight' | 'reps' | 'unit' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline' | 'extra'>>
+/** Fields a set row can change. `set_number` changes only when sets are reordered. */
+export type SetPatch = Partial<Pick<SetDetail, 'set_number' | 'weight' | 'reps' | 'unit' | 'set_type' | 'duration_seconds' | 'distance' | 'distance_unit' | 'drops' | 'incline' | 'extra'>>

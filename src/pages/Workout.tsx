@@ -3,7 +3,7 @@ import { useNavigate, useNavigationType, useParams } from 'react-router'
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { useAllSets, useProfile, useWorkout, useWorkouts } from '../api/queries'
-import { deleteWorkout, discardHeld, editorOpen, editsQuiet, saveHeld, useAddExercise, useAddSets, useDeleteSet, useRemoveExercise, useRepeatLast, useReplaceSets, useSessionControls, useUpdateExercise, useUpdateSets, useUpdateWorkout, useUpdateWorkoutExercise, writeHeld } from '../api/mutations'
+import { deleteWorkout, discardHeld, editorOpen, editsQuiet, saveHeld, useAddExercise, useAddSets, useDeleteSet, useRemoveExercise, useReorderSets, useRepeatLast, useReplaceSets, useSessionControls, useUpdateExercise, useUpdateSets, useUpdateWorkout, useUpdateWorkoutExercise, writeHeld } from '../api/mutations'
 import { editKey, keys } from '../api/keys'
 import { heldCount, holdWrites, stopHolding, useHeldCount } from '../api/hold'
 import type { WorkoutDetail } from '../api/types'
@@ -40,6 +40,7 @@ export function WorkoutPage() {
   const updateSets = useUpdateSets(id)
   const replaceSets = useReplaceSets(id)
   const deleteSet = useDeleteSet(id)
+  const reorderSets = useReorderSets(id)
   const repeatLast = useRepeatLast(id)
 
   // A finished workout or a plan opens for editing: every change shows at once but is written
@@ -333,6 +334,7 @@ export function WorkoutPage() {
             onAddSets={(sets) => addSets.mutate({ workoutExerciseId: we.id, sets })}
             onReplaceSets={(sets) => replaceSets.mutate({ workoutExerciseId: we.id, sets })}
             onDeleteSet={(setId) => deleteSet.mutate(setId)}
+            onReorderSets={(order) => reorderSets.mutate({ workoutExerciseId: we.id, order })}
             onNotes={(n) => updateWorkoutExercise.mutate({ workoutExerciseId: we.id, patch: { notes: n } })}
             onComplete={(done) => updateWorkoutExercise.mutate({ workoutExerciseId: we.id, patch: { completed_at: done ? new Date().toISOString() : null } })}
             onMetrics={(metrics) => updateExercise.mutate({ exerciseId: we.exercise_id, patch: { metrics, track_incline: metrics.includes('incline') } })}
