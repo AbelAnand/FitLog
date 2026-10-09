@@ -2,7 +2,7 @@ import type { Drop, ExerciseKind, SetType } from '../api/types'
 import { isMetricKey, type MetricKey } from '../data/cardio-metrics'
 import { LIMITS } from '../data/limits'
 import type { DistanceUnit, Unit } from '../lib/units'
-import type { StoredExercise, StoredProfile, StoredSet, StoredWorkout, StoredWorkoutExercise } from './types'
+import type { SplitDay, StoredExercise, StoredProfile, StoredSet, StoredSplit, StoredWorkout, StoredWorkoutExercise, TemplateExercise, TemplateSet } from './types'
 import { DEFAULT_PROFILE } from './types'
 
 /**
@@ -117,12 +117,9 @@ export function cleanExtra(v: unknown): Partial<Record<MetricKey, number>> {
   return out
 }
 
-export function cleanSet(v: unknown): StoredSet | null {
-  const r = obj(v)
-  if (!r || !isId(r.id) || !isId(r.workout_exercise_id)) return null
+/** The figures of a set, shared by logged sets and the target sets inside a split. */
+function setFields(r: Raw): TemplateSet {
   return {
-    id: r.id,
-    workout_exercise_id: r.workout_exercise_id,
     set_number: int(r.set_number, 0, 1000, 1),
     set_type: oneOf(r.set_type, SET_TYPES, 'working'),
     weight: num(r.weight, 0, 99999),
@@ -134,6 +131,48 @@ export function cleanSet(v: unknown): StoredSet | null {
     drops: cleanDrops(r.drops),
     incline: numOrNull(r.incline, 0, 100),
     extra: cleanExtra(r.extra),
+  }
+}
+
+export function cleanSet(v: unknown): StoredSet | null {
+  const r = obj(v)
+  if (!r || !isId(r.id) || !isId(r.workout_exercise_id)) return null
+  return { id: r.id, workout_exercise_id: r.workout_exercise_id, ...setFields(r), created_at: stamp(r.created_at, new Date(0).toISOString()) }
+}
+
+export function cleanTemplateSet(v: unknown): TemplateSet | null {
+  const r = obj(v)
+  return r ? setFields(r) : null
+}
+
+function cleanTemplateExercise(v: unknown): TemplateExercise | null {
+  const r = obj(v)
+  if (!r || !isId(r.exercise_id)) return null
+  const sets = Array.isArray(r.sets) ? r.sets.map(cleanTemplateSet).filter((s): s is TemplateSet => !!s).slice(0, LIMITS.splitTemplateSets) : []
+  return { exercise_id: r.exercise_id, sets: sets.map((s, i) => ({ ...s, set_number: i + 1 })) }
+}
+
+export function cleanSplitDay(v: unknown): SplitDay | null {
+  const r = obj(v)
+  if (!r) return null
+  if (r.rest === true) return { rest: true }
+  const exercises = Array.isArray(r.exercises) ? r.exercises.map(cleanTemplateExercise).filter((e): e is TemplateExercise => !!e).slice(0, LIMITS.splitDayExercises) : []
+  return { rest: false, title: text(r.title, LIMITS.workoutTitle).trim(), exercises }
+}
+
+export function cleanSplit(v: unknown): StoredSplit | null {
+  const r = obj(v)
+  if (!r || !isId(r.id)) return null
+  const days = Array.isArray(r.days) ? r.days.map(cleanSplitDay).filter((d): d is SplitDay => !!d).slice(0, LIMITS.splitDays) : []
+  const from = isDate(r.applied_from) ? r.applied_from : null
+  const through = isDate(r.applied_through) ? r.applied_through : null
+  return {
+    id: r.id,
+    name: text(r.name, LIMITS.splitName).trim(),
+    days,
     created_at: stamp(r.created_at, new Date(0).toISOString()),
+    // Both dates or neither: Extend needs the start to know where the cycle stands.
+    applied_from: from && through && from <= through ? from : null,
+    applied_through: from && through && from <= through ? through : null,
   }
 }

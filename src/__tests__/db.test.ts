@@ -197,7 +197,7 @@ describe('backup and restore', () => {
   it('refuses files that are not SplitLog backups', () => {
     expect(() => readImportFile('hello')).toThrow(UnreadableFile)
     expect(() => readImportFile('{"app":"Other"}')).toThrow(/not a SplitLog backup/)
-    expect(() => readImportFile('{"app":"FitLog","format":2}')).toThrow(/newer version/)
+    expect(() => readImportFile('{"app":"FitLog","format":3}')).toThrow(/newer version/)
     expect(() => readImportFile('{"app":"FitLog","format":1,"sets":{}}')).toThrow(/damaged/)
     expect(() => readImportFile('{not json')).toThrow(UnreadableFile)
   })

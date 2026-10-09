@@ -3,8 +3,8 @@ import type { MetricKey } from '../data/cardio-metrics'
 import type { DistanceUnit, Unit } from '../lib/units'
 
 /** What is kept on the device. One record per row, grouped by table. */
-export type Table = 'workouts' | 'exercises' | 'workout_exercises' | 'sets' | 'meta'
-export const TABLES: Table[] = ['workouts', 'exercises', 'workout_exercises', 'sets', 'meta']
+export type Table = 'workouts' | 'exercises' | 'workout_exercises' | 'sets' | 'splits' | 'meta'
+export const TABLES: Table[] = ['workouts', 'exercises', 'workout_exercises', 'sets', 'splits', 'meta']
 
 export interface StoredWorkout {
   id: string
@@ -56,6 +56,32 @@ export interface StoredSet {
   created_at: string
 }
 
+/** A target set inside a split's day template: a set without the row bookkeeping. */
+export type TemplateSet = Omit<StoredSet, 'id' | 'workout_exercise_id' | 'created_at'>
+
+/** One exercise of a day template, with its own copy of the target sets. */
+export interface TemplateExercise {
+  exercise_id: string
+  sets: TemplateSet[]
+}
+
+/** One day of a split's cycle: a workout to plan, or a rest day. */
+export type SplitDay = { rest: true } | { rest: false; title: string; exercises: TemplateExercise[] }
+
+/**
+ * A split: a named cycle of days applied to the calendar in order, whatever the weekday.
+ * Templates keep their own sets, so editing a plan made from a split does not change the split.
+ */
+export interface StoredSplit {
+  id: string
+  name: string
+  days: SplitDay[]
+  created_at: string
+  /** The first date the split was last applied from, and the last date it filled (for Extend). */
+  applied_from: string | null
+  applied_through: string | null
+}
+
 export interface StoredProfile {
   unit: Unit
   distance_unit: DistanceUnit
@@ -85,14 +111,28 @@ export interface Persistence {
   wipe(): Promise<void>
 }
 
-/** The file written by "Save a backup" and read by "Restore". */
+/** Says a file holds one workout handed to someone, not a whole log. */
+export interface SharedMarker {
+  kind: 'workout'
+  /** The id of the shared workout inside the file. */
+  workout_id: string
+}
+
+/**
+ * The file written by "Save a backup" and read by "Restore". Format 2 added `splits`; format 1
+ * files are still read (they simply have none). A shared workout is the same file with `shared`.
+ */
 export interface BackupFile {
   app: 'FitLog'
-  format: 1
+  format: 2
   exportedAt: string
   profile: StoredProfile
   exercises: StoredExercise[]
   workouts: StoredWorkout[]
   workout_exercises: StoredWorkoutExercise[]
   sets: StoredSet[]
+  splits: StoredSplit[]
+  shared?: SharedMarker
 }
+
+export const BACKUP_FORMAT = 2

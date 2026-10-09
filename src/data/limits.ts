@@ -9,6 +9,16 @@ export const LIMITS = {
   exerciseName: 80,
   drops: 20,
   reps: 10000,
+  /** Days that can be picked at once when duplicating a workout onto other days. */
+  duplicateDays: 60,
+  /** A split: how it is named, how long its cycle can be, and how much of one day it can hold. */
+  splitName: 60,
+  splitDays: 21,
+  splitDayExercises: 30,
+  splitTemplateSets: 40,
+  splits: 30,
+  /** How far ahead one Apply can fill the calendar, in weeks. */
+  splitFillWeeks: 26,
 } as const
 
 /** Why a save to the device failed, in words a person can act on. */

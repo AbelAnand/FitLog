@@ -68,7 +68,7 @@ export function demoBackup(today = new Date()): BackupFile {
   lift('Bench Press', 0, [['warmup', 95, 10], ['working', 175, 8], ['working', 175, 7], ['working', 175, 6]])
   lift('Overhead Press', 1, [['working', 120, 8], ['working', 120, 7], ['working', 120, 6]])
 
-  return { app: 'FitLog', format: 1, exportedAt: today.toISOString(), profile: { unit: 'lb', distance_unit: 'mi', weekly_goal: 4 }, exercises: [...exercises.values()], workouts, workout_exercises: entries, sets }
+  return { app: 'FitLog', format: 2, exportedAt: today.toISOString(), profile: { unit: 'lb', distance_unit: 'mi', weekly_goal: 4 }, exercises: [...exercises.values()], workouts, workout_exercises: entries, sets, splits: [] }
 }
 
 /** Every native plugin call since the app loaded, with where it came from (simulator tests read it). */
