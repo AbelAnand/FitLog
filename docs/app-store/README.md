@@ -24,7 +24,7 @@ npm run ios          # opens Xcode
 ```
 
 In Xcode choose **Any iOS Device**, then **Product → Archive → Distribute App → App Store Connect**.
-The project is set to version 1.0.1 (build 2); 1.0 (1) was approved on 2026-10-07, iPhone only, portrait, no export-compliance prompt.
+The project is set to version 1.1.0 (build 3); 1.0 (1) was approved on 2026-10-07, iPhone only, portrait, no export-compliance prompt. 1.0.1 (build 2) was prepared but never uploaded; its link fix ships in 1.1.0.
 Raise the build number for every later upload (build 1 was uploaded on 2026-10-07; the next is 2).
 
 Do not archive after `vite build --mode simtest`: that bundle contains the simulator test tools.
