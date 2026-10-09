@@ -84,6 +84,16 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 > • Export everything to a spreadsheet.
 > • No analytics and no tracking.
 
+**What's New** (for 1.1.0)
+
+> • Share a workout: a file for SplitLog users and a text summary for anyone.
+> • Duplicate a workout or plan onto other days.
+> • Splits: save your cycle (Push, Pull, Legs, Rest…) and fill the calendar with it.
+> • Make your own themes and share them as a code.
+> • Hold and drag to reorder sets. Add set now starts empty.
+> • The History tab is now Calendar.
+> • Fixed the help, guide and privacy links.
+
 **What's New** (for 1.0)
 
 > First release.

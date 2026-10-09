@@ -186,9 +186,10 @@ These are the changes that widen who can use SplitLog, roughly in the order of d
 | Change | What it unlocks | Fits the promise? | Effort |
 |---|---|---|---|
 | **Rating prompt** after the third workout | App Store ranking | Yes | Hours |
+| **Share a workout as a file + text** | Done 2026-10-09 (1.1.0) | Yes | Done |
 | **Share a PR or a year as an image** (a card drawn by the app, handed to the share sheet) | The only growth loop that works with no server: every share is a screenshot with the app's name on it | Yes: the file leaves through the share sheet, nothing is sent by the app | Days |
 | **Plan-file sharing** ("Share this plan", open a shared file by link) | Gyms, coaches | Yes | Days |
-| **Android** | Doubles the market; Capacitor makes the web layer reusable; the Swift storage plugin, widgets and back-gesture plugin need Kotlin equivalents | Yes | Weeks |
+| **Android** | Doubles the market. Done 2026-10-09 on the emulator (see docs/android/README.md); remaining: real device test, widget, Play Console account, keystore | Yes | Days left |
 | **iPad** | Small, but App Store "iPad" filter and a bigger History view | Yes | Days |
 | **Apple Watch** | Logging without taking the phone out; large demand in the category | Yes, data stays on the user's devices | Weeks |
 | **Apple Health** | Writes workouts to Health; many users expect it | Yes if write-only and off by default; the privacy page must change | Days |

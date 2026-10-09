@@ -62,6 +62,8 @@ A SQLite file inside the app's own storage on the iPhone. Every batch of changes
 - Per-set rows: weight × reps, stored as typed with the unit.
 - Set types: working, warm-up (W, excluded from records and volume), drop set (one set stepping down in weight, as many drops as you like), to failure (F).
 - Set menu: change type, duplicate, copy to all sets below, delete.
+- Hold a set and drag to reorder it (1.1).
+- Add set starts empty; Duplicate copies a set (1.1).
 - Fill-down: empty sets inherit the values above.
 - Add set copies the previous set.
 - Quick fill: several identical sets at once.
@@ -101,6 +103,9 @@ A SQLite file inside the app's own storage on the iPhone. Every batch of changes
 - Plan a workout for a later day: title, exercises, target sets.
 - On the day, tap Start on the plan and check exercises off as you finish them.
 - Plans do not count toward streak, records or history until started.
+- Duplicate any workout or plan onto other days as plans; identical plans are skipped (1.1).
+- Splits: a saved rolling cycle (Push, Pull, Legs, Rest…) applied from a start date for a number of weeks; Extend carries it on (1.1).
+- Share a workout: a SplitLog file another user opens straight into their calendar as a plan, plus a text summary for anyone (1.1).
 
 ### History
 
@@ -124,6 +129,7 @@ A SQLite file inside the app's own storage on the iPhone. Every batch of changes
 ### Units and themes
 
 - Pounds or kilograms; miles or kilometres. Logged workouts keep the values you typed and are converted for display.
+- Custom themes: four colours plus light or dark, up to 20, shared as a short code (1.1).
 - Six themes: Volt (black with electric lime, the default), Tide (deep navy, cool blue), Forest (dark green, mint), Rose (plum black, hot pink), Ember (warm cream, red-orange, light), Slate (clean light, black accent).
 - Light motion throughout: every action has a short transition; everything is off under Reduce Motion.
 
@@ -154,7 +160,7 @@ Useful for posts: saying what you left out is as persuasive as listing features.
 - No account, so no password reset and no "we've updated our terms" email.
 - No programs or coaching.
 - No ads, ever. No subscription, ever. Making money from the app is not a goal.
-- No Android, Apple Watch or iPad version yet (see the plan for how that could change).
+- No Apple Watch or iPad version yet. Android is built and runs on an emulator as of 2026-10-09; not yet on the Play Store.
 
 ## How it is built (for a technical audience)
 
@@ -178,7 +184,7 @@ Never promise: data recovery (there is no copy anywhere), cross-device sync, And
 | Fact | Value |
 |---|---|
 | App Store release | 2026-10-07, approved first submission |
-| Current version | 1.0.1 (build 2) |
+| Current version | 1.1.0 (build 3), in preparation |
 | Price | Free in 175 countries |
 | Age rating | 4+ |
 | Privacy label | Data Not Collected |
