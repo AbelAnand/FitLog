@@ -20,6 +20,21 @@ In Xcode: plug in your iPhone, pick it as the run destination, and press **Run**
 
 Installing over an earlier build keeps the log. Deleting the app deletes it, so save a backup first (Settings → Save a backup).
 
+## Android
+
+The same app in a native Android shell under `android/` (Capacitor, Kotlin plugins for storage,
+widget data and the back gesture). It keeps the same promises: everything on the device, no
+account, no network requests, no analytics, and no `INTERNET` permission.
+
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+echo "sdk.dir=$HOME/Library/Android/sdk" > android/local.properties
+CAP_BUILD=1 npx vite build && npx cap sync android
+(cd android && ./gradlew assembleDebug)   # android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Build, signing, the Play Console listing and what is still missing are in [`docs/android/`](docs/android/README.md).
+
 ## Development
 
 ```bash
