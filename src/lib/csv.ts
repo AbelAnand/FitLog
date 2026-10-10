@@ -1,5 +1,6 @@
 import type { SetRow } from './prs'
-import { isNative } from './native'
+import { isAndroid, isNative } from './native'
+import { shareTextFileAndroid } from './share-android'
 
 /**
  * One CSV cell. Text that a spreadsheet would run as a formula (it starts with = + - or @) is
@@ -29,6 +30,7 @@ export type ShareResult = 'shared' | 'downloaded' | 'cancelled'
  * Browser: the Web Share API where it can carry files, otherwise a download.
  */
 export async function shareTextFile(filename: string, text: string, type: string): Promise<ShareResult> {
+  if (isAndroid) return shareTextFileAndroid(filename, text)
   if (isNative) {
     const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')])
     const written = await Filesystem.writeFile({ path: filename, data: text, directory: Directory.Cache, encoding: Encoding.UTF8 })
@@ -65,3 +67,37 @@ export async function shareTextFile(filename: string, text: string, type: string
 }
 
 export const exportCsv = (filename: string, csv: string) => shareTextFile(filename, csv, 'text/csv')
+
+/**
+ * Hand a file and a message about it to the person together. iPhone: one share sheet carrying
+ * both, so Messages gets the attachment and the words. Browser: the file is downloaded and the
+ * message copied to the clipboard (the Web Share API where it can carry both).
+ */
+export async function shareFileWithText(filename: string, text: string, type: string, message: string, title = filename): Promise<ShareResult> {
+  if (isAndroid) return shareTextFileAndroid(filename, text, message, title)
+  if (isNative) {
+    const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')])
+    const written = await Filesystem.writeFile({ path: filename, data: text, directory: Directory.Cache, encoding: Encoding.UTF8 })
+    try {
+      await Share.share({ title, text: message, files: [written.uri] })
+      return 'shared'
+    } catch (e) {
+      if (/cancel/i.test((e as Error).message ?? '')) return 'cancelled'
+      throw e
+    } finally {
+      Filesystem.deleteFile({ path: filename, directory: Directory.Cache }).catch(() => {})
+    }
+  }
+  const file = new File([text], filename, { type })
+  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
+  if (nav.share && nav.canShare?.({ files: [file], text: message })) {
+    try {
+      await nav.share({ files: [file], text: message, title })
+      return 'shared'
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return 'cancelled'
+    }
+  }
+  await navigator.clipboard?.writeText(message).catch(() => {})
+  return shareTextFile(filename, text, type)
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and earlier (Auto Backup). The workout log, files/FitLog/fitlog.sqlite, and the
+  Capacitor Preferences (theme, reminder settings) are included. Nothing is excluded: the cache is
+  never backed up anyway, and that is the only place a temporary copy of the log is ever written.
+-->
+<full-backup-content>
+    <include domain="file" path="." />
+    <include domain="database" path="." />
+    <include domain="sharedpref" path="." />
+</full-backup-content>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      SplitLog keeps everything on the device: no server, no account, no network requests.
+      The bundle is served from the app's own assets, so there is no INTERNET permission.
+      The only permissions are the ones the reminders need (see the bottom of this file).
+    -->
+    <application
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- fitlog://start opens the start sheet, as on iOS (the Start workout widget and shortcuts). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="fitlog" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          Home-screen widgets, the Android counterparts of ios/App/FitLogWidget. Only the system sends
+          them APPWIDGET_UPDATE, so they are not exported; the app redraws the Streak widget itself.
+        -->
+        <receiver
+            android:name=".StreakWidget"
+            android:exported="false"
+            android:label="@string/widget_streak_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_streak_info" />
+        </receiver>
+        <receiver
+            android:name=".StartWorkoutWidget"
+            android:exported="false"
+            android:label="@string/widget_start_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_start_info" />
+        </receiver>
+
+        <!-- Hands a backup or spreadsheet written to the cache to the share sheet as a content URI. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <!--
+      The local-notifications plugin's own manifest asks for POST_NOTIFICATIONS (requested at runtime
+      only when a reminder is switched on in Settings), RECEIVE_BOOT_COMPLETED and WAKE_LOCK (to
+      re-arm scheduled reminders after a restart). It also asks for SCHEDULE_EXACT_ALARM; reminders
+      are scheduled as inexact alarms (src/lib/notifications.ts), so that one is removed here and the
+      "Alarms & reminders" settings prompt never appears.
+    -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+</manifest>

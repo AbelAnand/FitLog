@@ -10,6 +10,7 @@ export function Calendar({
   plannedDates = new Set<string>(),
   selected,
   onSelect,
+  marked = new Set<string>(),
 }: {
   month: Date
   onMonthChange: (m: Date) => void
@@ -17,6 +18,8 @@ export function Calendar({
   plannedDates?: Set<string>
   selected: Date | null
   onSelect: (d: Date) => void
+  /** Days picked in a multi-day choice (yyyy-MM-dd), drawn filled with the text colour. */
+  marked?: Set<string>
 }) {
   const touch = useRef<{ x: number; y: number } | null>(null)
   const days = eachDayOfInterval({
@@ -61,21 +64,24 @@ export function Calendar({
       <div className="grid grid-cols-7 gap-y-1">
         {days.map((d) => {
           const inMonth = isSameMonth(d, month)
-          const trained = trainedDates.has(format(d, 'yyyy-MM-dd'))
-          const plannedDay = !trained && plannedDates.has(format(d, 'yyyy-MM-dd'))
+          const key = format(d, 'yyyy-MM-dd')
+          const isMarked = marked.has(key)
+          const trained = !isMarked && trainedDates.has(key)
+          const plannedDay = !isMarked && !trained && plannedDates.has(key)
           const isSel = selected ? isSameDay(d, selected) : false
           return (
             <button
               key={d.toISOString()}
               type="button"
               onClick={() => onSelect(d)}
-              className="flex flex-col items-center justify-center h-11"
-              aria-label={format(d, 'PPP') + (trained ? ', trained' : plannedDay ? ', planned' : '')}
+              className="press-soft flex flex-col items-center justify-center h-11"
+              aria-label={format(d, 'PPP') + (isMarked ? ', chosen' : trained ? ', trained' : plannedDay ? ', planned' : '')}
+              aria-pressed={marked.size ? isMarked : undefined}
             >
               <div
                 className={`h-8 w-8 rounded-full flex items-center justify-center text-[14px] tabular ${
-                  trained ? 'bg-accent text-accent-ink font-semibold' : plannedDay ? 'border border-dashed border-accent/80 text-text' : inMonth ? 'text-text' : 'text-faint'
-                } ${isSel ? 'ring-2 ring-text' : isToday(d) && !trained && !plannedDay ? 'ring-1 ring-accent/70' : ''}`}
+                  isMarked ? 'bg-text text-bg font-semibold' : trained ? 'bg-accent text-accent-ink font-semibold' : plannedDay ? 'border border-dashed border-accent/80 text-text' : inMonth ? 'text-text' : 'text-faint'
+                } ${isSel ? 'ring-2 ring-text' : isToday(d) && !trained && !plannedDay && !isMarked ? 'ring-1 ring-accent/70' : ''}`}
               >
                 {d.getDate()}
               </div>

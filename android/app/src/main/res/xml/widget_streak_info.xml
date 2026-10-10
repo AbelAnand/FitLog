@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Streak widget: 2x2 cells by default, resizable. The hourly update keeps the "today" ring moving
+  past midnight; the app itself refreshes the widget every time its Home screen recomputes the streak
+  (WidgetBridgePlugin -> StreakWidget.refresh). previewLayout, description and the cell sizes are
+  read on Android 12+; older pickers show previewImage.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="320dp"
+    android:maxResizeHeight="220dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="3600000"
+    android:initialLayout="@layout/widget_streak"
+    android:previewLayout="@layout/widget_streak"
+    android:previewImage="@drawable/widget_preview_streak"
+    android:description="@string/widget_streak_description"
+    android:widgetCategory="home_screen" />

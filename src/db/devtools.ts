@@ -68,7 +68,7 @@ export function demoBackup(today = new Date()): BackupFile {
   lift('Bench Press', 0, [['warmup', 95, 10], ['working', 175, 8], ['working', 175, 7], ['working', 175, 6]])
   lift('Overhead Press', 1, [['working', 120, 8], ['working', 120, 7], ['working', 120, 6]])
 
-  return { app: 'FitLog', format: 1, exportedAt: today.toISOString(), profile: { unit: 'lb', distance_unit: 'mi', weekly_goal: 4 }, exercises: [...exercises.values()], workouts, workout_exercises: entries, sets }
+  return { app: 'FitLog', format: 2, exportedAt: today.toISOString(), profile: { unit: 'lb', distance_unit: 'mi', weekly_goal: 4 }, exercises: [...exercises.values()], workouts, workout_exercises: entries, sets, splits: [] }
 }
 
 /** Every native plugin call since the app loaded, with where it came from (simulator tests read it). */
@@ -109,6 +109,17 @@ export function installDevtools(db: LocalDb, qc: QueryClient) {
       const summary = await db.importAll(read.file, { takeProfile: read.kind === 'backup', kind: read.kind })
       await refresh()
       return summary
+    },
+    /** The file and the message "Share" would hand out for a workout. */
+    async sharedText(workoutId: string) {
+      const [{ sharedWorkoutFile }, { workoutSummaryText }] = await Promise.all([import('./share'), import('../lib/share-workout')])
+      return { file: serializeBackup(sharedWorkoutFile(db, workoutId)), summary: workoutSummaryText(db.getWorkout(workoutId)) }
+    },
+    /** Hand a file from the app's Documents folder to the app as if it had been tapped in Messages ("Open in SplitLog"). */
+    async openFile(name: string) {
+      const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
+      const { data } = await Filesystem.readFile({ path: name, directory: Directory.Documents, encoding: Encoding.UTF8 })
+      window.dispatchEvent(new CustomEvent('fitlog:open-file', { detail: { read: readImportFile(String(data)), name } }))
     },
     /** The log as the backup file and spreadsheet the user would save (simulator tests restore them). */
     backupText: () => serializeBackup(db.exportAll(new Date())),

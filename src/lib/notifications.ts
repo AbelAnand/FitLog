@@ -17,6 +17,12 @@ const KEY = 'fitlog.reminders'
 const GYM_KEY = 'fitlog.gymSession'
 /** Set once daily reminders have been scheduled, so the plugin is never touched before the user turns them on. */
 const DAILY_SCHEDULED_KEY = 'fitlog.dailyScheduled'
+/**
+ * Android only (iOS ignores it): a reminder a few minutes off is fine, and an exact alarm would need
+ * the SCHEDULE_EXACT_ALARM permission plus an "Alarms & reminders" settings prompt. The permission
+ * is stripped from the manifest, so this must stay false.
+ */
+const INEXACT = { isExactNotification: false } as const
 const DAILY_IDS = Array.from({ length: 14 }, (_, i) => 1001 + i)
 const GYM_IDS = Array.from({ length: 10 }, (_, i) => 2001 + i)
 
@@ -87,6 +93,7 @@ export async function syncDailyReminder(trainedDates: string[], settings?: Remin
       body: 'Trained today? Take 30 seconds to log it and keep the streak alive.',
       schedule: { at, allowWhileIdle: true },
       extra: { kind: 'daily' },
+      ...INEXACT,
     })
   }
   if (notifications.length) await LocalNotifications.schedule({ notifications })
@@ -120,6 +127,7 @@ export async function startGymSession(workoutId: string, title: string): Promise
       body: bodies[i % bodies.length],
       schedule: { at: new Date(now + (i + 1) * s.gymIntervalMin * 60_000), allowWhileIdle: true },
       extra: { kind: 'gym', workoutId },
+      ...INEXACT,
     })),
   })
 }

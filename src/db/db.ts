@@ -1,8 +1,9 @@
 import type { Exercise, ExerciseKind, SetPatch, WorkoutDetail, WorkoutExerciseDetail, WorkoutSummary } from '../api/types'
 import { defaultMetricsFor, type MetricKey } from '../data/cardio-metrics'
 import type { SetRow } from '../lib/prs'
-import { cleanExercise, cleanProfile, cleanSet, cleanWorkout, cleanWorkoutExercise } from './clean'
-import { DEFAULT_PROFILE, type BackupFile, type Op, type Persistence, type StoredExercise, type StoredProfile, type StoredSet, type StoredWorkout, type StoredWorkoutExercise } from './types'
+import { cleanExercise, cleanProfile, cleanSet, cleanSplit, cleanWorkout, cleanWorkoutExercise } from './clean'
+import type { ImportKind } from './backup'
+import { BACKUP_FORMAT, DEFAULT_PROFILE, type BackupFile, type Op, type Persistence, type StoredExercise, type StoredProfile, type StoredSet, type StoredSplit, type StoredWorkout, type StoredWorkoutExercise, type Table } from './types'
 
 /**
  * The whole log, held in memory and mirrored to storage on the device.
@@ -29,8 +30,17 @@ export interface ImportSummary {
    * leaves them alone. Either way nothing is doubled.
    */
   sameWorkouts: number
+  /** Splits in the file (format 2 and later). */
+  splits: number
   /** Records that could not be read and were left out. */
   skipped: number
+}
+
+/** A plan ready to be added: the workout row with its exercise entries and target sets. */
+export interface PlanCopy {
+  workout: StoredWorkout
+  entries: StoredWorkoutExercise[]
+  sets: StoredSet[]
 }
 
 const round = (n: number | null) => (n == null ? '' : String(Math.round(n * 100) / 100))
@@ -52,6 +62,7 @@ export class LocalDb {
   private exercises = new Map<string, StoredExercise>()
   private entries = new Map<string, StoredWorkoutExercise>()
   private sets = new Map<string, StoredSet>()
+  private splits = new Map<string, StoredSplit>()
   private meta = new Map<string, unknown>()
   private opening: Promise<void> | null = null
   private saving: Promise<unknown> = Promise.resolve()
@@ -78,8 +89,13 @@ export class LocalDb {
     this.exercises.clear()
     this.entries.clear()
     this.sets.clear()
+    this.splits.clear()
     this.meta.clear()
     for (const r of records) this.put(r.t, r.id, r.v)
+  }
+
+  private table(t: Exclude<Table, 'meta'>): Map<string, { id: string }> {
+    return t === 'workouts' ? this.workouts : t === 'exercises' ? this.exercises : t === 'workout_exercises' ? this.entries : t === 'sets' ? this.sets : this.splits
   }
 
   /** Apply one record to memory. Anything unreadable is ignored. */
@@ -89,13 +105,13 @@ export class LocalDb {
       else this.meta.set(id, v)
       return
     }
-    const map = t === 'workouts' ? this.workouts : t === 'exercises' ? this.exercises : t === 'workout_exercises' ? this.entries : this.sets
+    const map = this.table(t)
     if (v == null) {
       map.delete(id)
       return
     }
-    const clean = t === 'workouts' ? cleanWorkout(v) : t === 'exercises' ? cleanExercise(v) : t === 'workout_exercises' ? cleanWorkoutExercise(v) : cleanSet(v)
-    if (clean && clean.id === id) (map as Map<string, typeof clean>).set(id, clean)
+    const clean = t === 'workouts' ? cleanWorkout(v) : t === 'exercises' ? cleanExercise(v) : t === 'workout_exercises' ? cleanWorkoutExercise(v) : t === 'sets' ? cleanSet(v) : cleanSplit(v)
+    if (clean && clean.id === id) map.set(id, clean)
   }
 
   /** Change memory now, save in the background. Resolves once the change is on disk. */
@@ -116,7 +132,7 @@ export class LocalDb {
   }
 
   private read(t: Op['t'], id: string): unknown {
-    return t === 'meta' ? this.meta.get(id) : t === 'workouts' ? this.workouts.get(id) : t === 'exercises' ? this.exercises.get(id) : t === 'workout_exercises' ? this.entries.get(id) : this.sets.get(id)
+    return t === 'meta' ? this.meta.get(id) : this.table(t).get(id)
   }
 
   /** Resolves when every change made so far has been saved. */
@@ -242,7 +258,77 @@ export class LocalDb {
     return undefined
   }
 
+  /** Every split, oldest first. */
+  listSplits(): StoredSplit[] {
+    return [...this.splits.values()].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+  }
+
+  getSplit(id: string): StoredSplit {
+    const s = this.splits.get(id)
+    if (!s) throw new NotFound('Split not found')
+    return s
+  }
+
+  /** A plan with this date, title and sets is already on the calendar. */
+  hasSamePlan(copy: PlanCopy): boolean {
+    return this.signatures(copy.workout.date).has(this.planSignature(copy))
+  }
+
   /* ---------- Writing ---------- */
+
+  /** Add or replace a split. Templates pointing at exercises that are not in the library lose them. */
+  putSplit(split: StoredSplit): Promise<void> {
+    const clean = cleanSplit(split)
+    if (!clean) return Promise.reject(new Error('That split cannot be saved'))
+    const days = clean.days.map((d) => (d.rest ? d : { ...d, exercises: d.exercises.filter((e) => this.exercises.has(e.exercise_id)) }))
+    return this.commit([{ t: 'splits', id: clean.id, v: { ...clean, days } }])
+  }
+
+  removeSplit(id: string): Promise<void> {
+    return this.commit([{ t: 'splits', id, v: null }])
+  }
+
+  /** Remember how far a split has been applied, so Extend can carry on from the right day. */
+  markSplitApplied(id: string, from: string, through: string): Promise<void> {
+    const s = this.splits.get(id)
+    if (!s) return Promise.reject(new NotFound('Split not found'))
+    return this.commit([{ t: 'splits', id, v: { ...s, applied_from: from, applied_through: through } }])
+  }
+
+  /**
+   * Add plans to the calendar, one per copy, in one save. A day that already has the same plan
+   * (same title and sets) is skipped, so applying a split twice does not double it. Entries whose
+   * exercise is no longer in the library are left out.
+   */
+  addPlans(copies: PlanCopy[]): Promise<{ added: number; skipped: number }> {
+    const ops: Op[] = []
+    const seen = new Set<string>()
+    let added = 0
+    let skipped = 0
+    for (const copy of copies) {
+      const entries = copy.entries.filter((e) => this.exercises.has(e.exercise_id))
+      const entryIds = new Set(entries.map((e) => e.id))
+      const sets = copy.sets.filter((s) => entryIds.has(s.workout_exercise_id))
+      const kept = { workout: { ...copy.workout, is_plan: true }, entries, sets }
+      const signature = this.planSignature(kept)
+      if (seen.has(signature) || this.signatures(kept.workout.date).has(signature)) {
+        skipped++
+        continue
+      }
+      seen.add(signature)
+      ops.push({ t: 'workouts', id: kept.workout.id, v: kept.workout })
+      for (const e of entries) ops.push({ t: 'workout_exercises', id: e.id, v: { ...e, workout_id: kept.workout.id } })
+      for (const s of sets) ops.push({ t: 'sets', id: s.id, v: s })
+      added++
+    }
+    return this.commit(ops).then(() => ({ added, skipped }))
+  }
+
+  private planSignature(copy: PlanCopy): string {
+    const exerciseOf = new Map(copy.entries.map((e) => [e.id, e.exercise_id]))
+    const lines = copy.sets.map((s) => setSignature(this.exercises.get(exerciseOf.get(s.workout_exercise_id) ?? '')?.name.toLowerCase() ?? '', s))
+    return workoutSignature({ ...copy.workout, is_plan: true }, lines)
+  }
 
   setProfile(patch: Partial<StoredProfile>): Promise<void> {
     return this.commit([{ t: 'meta', id: 'profile', v: cleanProfile({ ...this.profile(), ...patch }) }])
@@ -384,13 +470,14 @@ export class LocalDb {
     const byCreated = <T extends { created_at: string; id: string }>(a: T, b: T) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)
     return {
       app: 'FitLog',
-      format: 1,
+      format: BACKUP_FORMAT,
       exportedAt: now.toISOString(),
       profile: this.profile(),
       exercises: [...this.exercises.values()].sort(byCreated),
       workouts: [...this.workouts.values()].sort(byCreated),
       workout_exercises: [...this.entries.values()].sort(byCreated),
       sets: [...this.sets.values()].sort(byCreated),
+      splits: [...this.splits.values()].sort(byCreated),
     }
   }
 
@@ -398,9 +485,11 @@ export class LocalDb {
    * What restoring this file would do, without doing it. Records that point at something missing
    * (a set whose exercise entry is not in the file or on the device) are counted as skipped.
    *
-   * `kind` says how much the file knows: a backup holds everything, a spreadsheet holds sets only.
+   * `kind` says how much the file knows: a backup holds everything, a spreadsheet holds sets only,
+   * and a shared file is someone else's workout, which may add to the library but never changes
+   * what is already here.
    */
-  planImport(file: BackupFile, kind: 'backup' | 'spreadsheet' = 'backup'): { ops: Op[]; summary: ImportSummary } {
+  planImport(file: BackupFile, kind: ImportKind = 'backup'): { ops: Op[]; summary: ImportSummary } {
     const ops: Op[] = []
     let skipped = 0
     let alreadyHere = 0
@@ -452,7 +541,7 @@ export class LocalDb {
       for (const w of workouts) if (w) incoming.set(w.id, workoutSignature(w, lines.get(w.id) ?? []))
     }
     const here = new Map<string, string[]>()
-    for (const [id, signature] of this.signatures()) {
+    for (const [id, signature] of this.signatureById()) {
       const list = here.get(signature)
       if (list) list.push(id)
       else here.set(signature, [id])
@@ -468,8 +557,8 @@ export class LocalDb {
         const twin = here.get(incoming.get(w.id) ?? '')?.shift()
         if (twin) {
           sameWorkouts++
-          if (kind === 'spreadsheet') {
-            // What is here knows at least as much as the spreadsheet does.
+          if (kind !== 'backup') {
+            // What is here knows at least as much as a spreadsheet does, and a shared file must not replace anything.
             leftOut.add(w.id)
             continue
           }
@@ -500,15 +589,32 @@ export class LocalDb {
       setCount++
     }
 
-    return { ops, summary: { workouts: workoutIds.size, exercises, sets: setCount, alreadyHere, sameWorkouts, skipped } }
+    // Splits only travel in backups. Their templates point at exercises, which may have been matched by name above.
+    let splits = 0
+    if (kind === 'backup') {
+      for (const raw of file.splits) {
+        const split = cleanSplit(raw)
+        if (!split) { skipped++; continue }
+        if (this.splits.has(split.id)) alreadyHere++
+        const days = split.days.map((d) => (d.rest ? d : { ...d, exercises: d.exercises.flatMap((e) => { const id = knownExercise(e.exercise_id); return id ? [{ ...e, exercise_id: id }] : [] }) }))
+        ops.push({ t: 'splits', id: split.id, v: { ...split, days } })
+        splits++
+      }
+    }
+
+    return { ops, summary: { workouts: workoutIds.size, exercises, sets: setCount, alreadyHere, sameWorkouts, splits, skipped } }
   }
 
-  /** A fingerprint of every workout here that has sets, for recognising the same workout under another id. */
-  private signatures(): Map<string, string> {
+  /**
+   * A fingerprint of every workout here that has sets, by id, for recognising the same workout
+   * under another id. `onDate` narrows it to one day.
+   */
+  private signatureById(onDate?: string): Map<string, string> {
     const lines = new Map<string, string[]>()
     for (const s of this.sets.values()) {
       const e = this.entries.get(s.workout_exercise_id)
       if (!e) continue
+      if (onDate && this.workouts.get(e.workout_id)?.date !== onDate) continue
       const name = this.exercises.get(e.exercise_id)?.name.toLowerCase() ?? ''
       const list = lines.get(e.workout_id)
       if (list) list.push(setSignature(name, s))
@@ -522,8 +628,12 @@ export class LocalDb {
     return out
   }
 
+  private signatures(onDate?: string): Set<string> {
+    return new Set(this.signatureById(onDate).values())
+  }
+
   /** Add a backup's contents to what is here. Nothing on the device is removed. */
-  async importAll(file: BackupFile, options: { takeProfile?: boolean; kind?: 'backup' | 'spreadsheet' } = {}): Promise<ImportSummary> {
+  async importAll(file: BackupFile, options: { takeProfile?: boolean; kind?: ImportKind } = {}): Promise<ImportSummary> {
     const { ops, summary } = this.planImport(file, options.kind ?? 'backup')
     if (options.takeProfile) ops.push({ t: 'meta', id: 'profile', v: cleanProfile(file.profile) })
     await this.commit(ops)

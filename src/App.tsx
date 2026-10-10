@@ -7,8 +7,11 @@ import { Button, Spinner } from './components/ui'
 import { Toaster } from './components/Toaster'
 import { toast } from './lib/toast'
 import { explainSaveError } from './data/limits'
-import { isNative } from './lib/native'
+import { deviceName, isNative } from './lib/native'
 import { onNotificationTap } from './lib/notifications'
+import { isFileUrl, readOpenedFile } from './lib/open-file'
+import { UnreadableFile } from './db/backup'
+import { RestoreSheet, type PendingFile } from './components/RestoreSheet'
 import { HomePage } from './pages/Home'
 import { HistoryPage } from './pages/History'
 import { SettingsPage } from './pages/Settings'
@@ -31,27 +34,47 @@ const queryClient = new QueryClient({
 // Handles for development and simulator tests. Release builds do not include them.
 if (import.meta.env.DEV || import.meta.env.MODE === 'simtest') import('./db/devtools').then((m) => m.installDevtools(db, queryClient))
 
-/** Deep links from the widget (fitlog://start) and notification taps. */
+/** Deep links from the widget (fitlog://start), notification taps, and files opened with "Open in SplitLog". */
 function NativeRouting() {
   const nav = useNavigate()
+  const [incoming, setIncoming] = useState<PendingFile | null>(null)
   useEffect(() => {
     if (!isNative) return
     let removeTap: (() => void) | undefined
     let removeUrl: { remove: () => void } | undefined
+    const seen = new Set<string>()
+    const openFile = async (url: string) => {
+      // The launch URL and the appUrlOpen event can both report the same file.
+      if (seen.has(url)) return
+      seen.add(url)
+      try {
+        setIncoming(await readOpenedFile(url))
+      } catch (e) {
+        toast(e instanceof UnreadableFile ? e.message : "That file couldn't be read.", 'error', 6000)
+      }
+    }
+    const route = (url: string) => {
+      if (isFileUrl(url)) return openFile(url)
+      const path = url.replace(/^fitlog:\/\//, '')
+      if (path.startsWith('start')) nav('/?start=1')
+      else nav(`/${path.replace(/^\/+/, '')}`)
+    }
     onNotificationTap(({ workoutId }) => nav(workoutId ? `/workout/${workoutId}` : '/')).then((r) => { removeTap = r })
     import('@capacitor/app').then(({ App: CapApp }) => {
-      CapApp.addListener('appUrlOpen', ({ url }) => {
-        const path = url.replace(/^fitlog:\/\//, '')
-        if (path.startsWith('start')) nav('/?start=1')
-        else nav(`/${path.replace(/^\/+/, '')}`)
-      }).then((h) => { removeUrl = h })
+      CapApp.addListener('appUrlOpen', ({ url }) => { route(url) }).then((h) => { removeUrl = h })
+      // A file tapped while the app was closed arrives as the launch URL, before any listener exists.
+      CapApp.getLaunchUrl().then((launch) => { if (launch?.url && isFileUrl(launch.url)) openFile(launch.url) }).catch(() => {})
     })
+    // Simulator tests hand a file in directly (src/db/devtools.ts); release builds never fire this.
+    const testOpen = (e: Event) => { if (import.meta.env.DEV || import.meta.env.MODE === 'simtest') setIncoming((e as CustomEvent<PendingFile>).detail) }
+    window.addEventListener('fitlog:open-file', testOpen)
     return () => {
       removeTap?.()
       removeUrl?.remove()
+      window.removeEventListener('fitlog:open-file', testOpen)
     }
   }, [nav])
-  return null
+  return <RestoreSheet file={incoming} onClose={() => setIncoming(null)} onImported={(_summary, workoutId) => { if (workoutId) nav(`/workout/${workoutId}`) }} />
 }
 
 /** Remount the editor per workout so its local title/notes state never carries over. */
@@ -82,7 +105,7 @@ function DataGate({ children }: { children: ReactNode }) {
   return (
     <main className="min-h-dvh mx-auto max-w-sm px-6 pt-safe pb-safe flex flex-col justify-center text-center">
       <h1 className="text-[22px] font-bold">SplitLog couldn't open your log</h1>
-      <p className="mt-2 text-muted text-[15px]">Your workouts are still on this iPhone. Close SplitLog completely and open it again. If this keeps happening, free up some storage space.</p>
+      <p className="mt-2 text-muted text-[15px]">Your workouts are still on this {deviceName}. Close SplitLog completely and open it again. If this keeps happening, free up some storage space.</p>
       <Button size="lg" className="mt-6" onClick={() => { setState('opening'); setAttempt((n) => n + 1) }}>Try again</Button>
     </main>
   )

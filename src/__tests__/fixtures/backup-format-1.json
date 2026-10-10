@@ -1,0 +1,152 @@
+{
+ "app": "FitLog",
+ "format": 1,
+ "exportedAt": "2026-09-29T18:00:00.000Z",
+ "profile": {
+  "unit": "lb",
+  "distance_unit": "mi",
+  "weekly_goal": 4
+ },
+ "exercises": [
+  {
+   "id": "f1-ex-bench",
+   "name": "Bench Press",
+   "kind": "strength",
+   "track_incline": false,
+   "metrics": null,
+   "created_at": "2026-09-24T10:00:00.000Z"
+  },
+  {
+   "id": "f1-ex-run",
+   "name": "Running",
+   "kind": "cardio",
+   "track_incline": false,
+   "metrics": ["time", "distance"],
+   "created_at": "2026-09-24T10:00:00.000Z"
+  }
+ ],
+ "workouts": [
+  {
+   "id": "f1-w1",
+   "title": "Push",
+   "date": "2026-09-24",
+   "notes": "good session",
+   "created_at": "2026-09-24T10:00:00.000Z",
+   "started_at": "2026-09-24T10:00:00.000Z",
+   "finished_at": "2026-09-24T11:05:00.000Z",
+   "paused_at": null,
+   "paused_seconds": 120,
+   "is_plan": false
+  },
+  {
+   "id": "f1-w2",
+   "title": "Legs",
+   "date": "2026-10-20",
+   "notes": "",
+   "created_at": "2026-09-28T10:00:00.000Z",
+   "started_at": "2026-09-28T10:00:00.000Z",
+   "finished_at": null,
+   "paused_at": null,
+   "paused_seconds": 0,
+   "is_plan": true
+  }
+ ],
+ "workout_exercises": [
+  {
+   "id": "f1-e1",
+   "workout_id": "f1-w1",
+   "exercise_id": "f1-ex-bench",
+   "position": 0,
+   "notes": "paused reps",
+   "planned": false,
+   "completed_at": null,
+   "created_at": "2026-09-24T10:00:00.000Z"
+  },
+  {
+   "id": "f1-e2",
+   "workout_id": "f1-w1",
+   "exercise_id": "f1-ex-run",
+   "position": 1,
+   "notes": "",
+   "planned": false,
+   "completed_at": null,
+   "created_at": "2026-09-24T10:30:00.000Z"
+  },
+  {
+   "id": "f1-e3",
+   "workout_id": "f1-w2",
+   "exercise_id": "f1-ex-bench",
+   "position": 0,
+   "notes": "",
+   "planned": true,
+   "completed_at": null,
+   "created_at": "2026-09-28T10:00:00.000Z"
+  }
+ ],
+ "sets": [
+  {
+   "id": "f1-s1",
+   "workout_exercise_id": "f1-e1",
+   "set_number": 1,
+   "set_type": "warmup",
+   "weight": 95,
+   "unit": "lb",
+   "reps": 10,
+   "duration_seconds": null,
+   "distance": null,
+   "distance_unit": null,
+   "drops": [],
+   "incline": null,
+   "extra": {},
+   "created_at": "2026-09-24T10:01:00.000Z"
+  },
+  {
+   "id": "f1-s2",
+   "workout_exercise_id": "f1-e1",
+   "set_number": 2,
+   "set_type": "drop",
+   "weight": 185,
+   "unit": "lb",
+   "reps": 8,
+   "duration_seconds": null,
+   "distance": null,
+   "distance_unit": null,
+   "drops": [{ "weight": 155, "reps": 8 }, { "weight": 135, "reps": 8 }],
+   "incline": null,
+   "extra": {},
+   "created_at": "2026-09-24T10:05:00.000Z"
+  },
+  {
+   "id": "f1-s3",
+   "workout_exercise_id": "f1-e2",
+   "set_number": 1,
+   "set_type": "working",
+   "weight": 0,
+   "unit": "lb",
+   "reps": 0,
+   "duration_seconds": 1500,
+   "distance": 3,
+   "distance_unit": "mi",
+   "drops": [],
+   "incline": null,
+   "extra": { "hr": 150 },
+   "created_at": "2026-09-24T10:31:00.000Z"
+  },
+  {
+   "id": "f1-s4",
+   "workout_exercise_id": "f1-e3",
+   "set_number": 1,
+   "set_type": "working",
+   "weight": 190,
+   "unit": "lb",
+   "reps": 5,
+   "duration_seconds": null,
+   "distance": null,
+   "distance_unit": null,
+   "drops": [],
+   "incline": null,
+   "extra": {},
+   "created_at": "2026-09-28T10:01:00.000Z"
+  }
+ ]
+}

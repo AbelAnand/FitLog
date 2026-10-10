@@ -24,8 +24,8 @@ npm run ios          # opens Xcode
 ```
 
 In Xcode choose **Any iOS Device**, then **Product → Archive → Distribute App → App Store Connect**.
-The project is already set to version 1.0 (build 1), iPhone only, portrait, no export-compliance prompt.
-Raise the build number for every later upload.
+The project is set to version 1.1.0 (build 3); 1.0 (1) was approved on 2026-10-07, iPhone only, portrait, no export-compliance prompt. 1.0.1 (build 2) was prepared but never uploaded; its link fix ships in 1.1.0.
+Raise the build number for every later upload (build 1 was uploaded on 2026-10-07; the next is 2).
 
 Do not archive after `vite build --mode simtest`: that bundle contains the simulator test tools.
 `npm run build:ios` always produces a clean one.
@@ -39,9 +39,9 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 | Category | Health & Fitness |
 | Age rating | 4+ (answer "None" to every content question) |
 | Price | Free |
-| Privacy Policy URL | https://abelanand.github.io/FitLog/privacy.html |
-| Support URL | https://abelanand.github.io/FitLog/support.html (ticket form, delivered to dvapptester1@gmail.com) |
-| Marketing URL | https://abelanand.github.io/FitLog/ |
+| Privacy Policy URL | https://abelanand.github.io/SplitLog/privacy.html |
+| Support URL | https://abelanand.github.io/SplitLog/support.html (ticket form, delivered to dvapptester1@gmail.com) |
+| Marketing URL | https://abelanand.github.io/SplitLog/ |
 | Copyright | 2026 Abel Anand |
 
 **Promotional text** (170 max)
@@ -84,11 +84,21 @@ Do not archive after `vite build --mode simtest`: that bundle contains the simul
 > • Export everything to a spreadsheet.
 > • No analytics and no tracking.
 
+**What's New** (for 1.1.0)
+
+> • Share a workout: a file for SplitLog users and a text summary for anyone.
+> • Duplicate a workout or plan onto other days.
+> • Splits: save your cycle (Push, Pull, Legs, Rest…) and fill the calendar with it.
+> • Make your own themes and share them as a code.
+> • Hold and drag to reorder sets. Add set now starts empty.
+> • The History tab is now Calendar.
+> • Fixed the help, guide and privacy links.
+
 **What's New** (for 1.0)
 
 > First release.
 
-**Screenshots**: `screenshots/` holds five 1320 × 2868 images (iPhone 6.9"), in order: Home, a workout,
+**Screenshots**: `screenshots/` holds five 1320 × 2868 images (iPhone 6.9") and `screenshots-6.3/` the same five at 1206 × 2622, which is what the iPhone 6.1"/6.3" box in App Store Connect accepts. In order: Home, a workout,
 Progress, the Year view of History, and Settings with the backup tools. That one size covers every iPhone.
 They show example data made by the simulator test build, not anyone's real log. Refreshed 2026-10-06.
 

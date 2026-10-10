@@ -2,10 +2,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/app.css'
 import App from './App.tsx'
-import { initNative, isNative } from './lib/native'
+import { initNative, isAndroid, isNative } from './lib/native'
 import { applyTheme, loadTheme } from './lib/theme'
 
 if (isNative) initNative()
+// Android's back gesture/button: closes sheets, asks Save or Discard, backgrounds the app from a tab.
+if (isAndroid) import('./lib/android-back').then((m) => m.installAndroidBack())
 
 loadTheme().then(applyTheme)
 

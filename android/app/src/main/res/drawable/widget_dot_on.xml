@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A trained day: a filled accent dot with a tick. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/widgetAccent" />
+            <size android:width="18dp" android:height="18dp" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/ic_widget_check" android:top="4dp" android:bottom="4dp" android:left="4dp" android:right="4dp" />
+</layer-list>
