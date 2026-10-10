@@ -4,4 +4,26 @@
     <string name="title_activity_main">SplitLog</string>
     <string name="package_name">com.abelanand.fitlog</string>
     <string name="custom_url_scheme">com.abelanand.fitlog</string>
+
+    <!-- Home-screen widgets (StreakWidget.kt, StartWorkoutWidget.kt) -->
+    <string name="widget_streak_label">Streak</string>
+    <string name="widget_streak_description">Your weekly streak and this week\'s training days.</string>
+    <string name="widget_streak_title">Week streak</string>
+    <string name="widget_week_singular">week</string>
+    <string name="widget_week_plural">weeks</string>
+    <!-- Follows the number of days trained: "2 / 4 this week" -->
+    <string name="widget_this_week">/ %1$d this week</string>
+    <string name="widget_day_mon">M</string>
+    <string name="widget_day_tue">T</string>
+    <string name="widget_day_wed">W</string>
+    <string name="widget_day_thu">T</string>
+    <string name="widget_day_fri">F</string>
+    <string name="widget_day_sat">S</string>
+    <string name="widget_day_sun">S</string>
+    <string name="widget_empty">Open SplitLog to start tracking.</string>
+    <!-- Read out by screen readers for the whole widget -->
+    <string name="widget_streak_a11y">%1$d week streak, %2$d of %3$d days trained this week. Opens SplitLog.</string>
+    <string name="widget_start_label">Start workout</string>
+    <string name="widget_start_description">One tap opens SplitLog ready to start a workout.</string>
+    <string name="widget_start_text">Start workout</string>
 </resources>

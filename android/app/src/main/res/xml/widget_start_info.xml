@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Start workout tile: 2x1 cells by default, resizable. Nothing in it changes, so no periodic update. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="40dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:maxResizeWidth="320dp"
+    android:maxResizeHeight="150dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_start"
+    android:previewLayout="@layout/widget_start"
+    android:previewImage="@drawable/widget_preview_start"
+    android:description="@string/widget_start_description"
+    android:widgetCategory="home_screen" />
