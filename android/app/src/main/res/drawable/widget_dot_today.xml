@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Today, nothing logged yet: a ring in the accent colour. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/widgetSurface" />
+    <stroke android:width="1.5dp" android:color="#B3C6F135" />
+    <size android:width="18dp" android:height="18dp" />
+</shape>

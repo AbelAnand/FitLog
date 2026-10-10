@@ -22,4 +22,29 @@
         <item name="windowSplashScreenBackground">@color/appBackground</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
+
+    <!-- Streak widget: one column per day of the week (layout/widget_streak.xml). -->
+    <style name="WidgetDay">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="WidgetDot">
+        <item name="android:layout_width">18dp</item>
+        <item name="android:layout_height">18dp</item>
+        <item name="android:layout_marginBottom">3dp</item>
+        <item name="android:contentDescription">@null</item>
+    </style>
+
+    <style name="WidgetDayLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/widgetFaint</item>
+        <item name="android:textSize">9sp</item>
+    </style>
 </resources>

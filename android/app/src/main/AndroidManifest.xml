@@ -28,7 +28,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- fitlog://start opens the start sheet, as on iOS (used by shortcuts and a future widget). -->
+            <!-- fitlog://start opens the start sheet, as on iOS (the Start workout widget and shortcuts). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -36,6 +36,29 @@
                 <data android:scheme="fitlog" />
             </intent-filter>
         </activity>
+
+        <!--
+          Home-screen widgets, the Android counterparts of ios/App/FitLogWidget. Only the system sends
+          them APPWIDGET_UPDATE, so they are not exported; the app redraws the Streak widget itself.
+        -->
+        <receiver
+            android:name=".StreakWidget"
+            android:exported="false"
+            android:label="@string/widget_streak_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_streak_info" />
+        </receiver>
+        <receiver
+            android:name=".StartWorkoutWidget"
+            android:exported="false"
+            android:label="@string/widget_start_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_start_info" />
+        </receiver>
 
         <!-- Hands a backup or spreadsheet written to the cache to the share sheet as a content URI. -->
         <provider

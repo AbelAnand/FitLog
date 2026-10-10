@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A day of this week without a workout. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/widgetSurface" />
+    <size android:width="18dp" android:height="18dp" />
+</shape>
